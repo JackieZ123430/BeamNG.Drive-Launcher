@@ -1,0 +1,625 @@
+﻿using System;
+using System.IO;
+using System.Linq;
+using System.Windows;
+using System.Windows.Input;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using Microsoft.Win32;
+using System.Windows.Controls;
+using System.IO.Compression;
+
+namespace BeamNGLauncher
+{
+    public partial class MainWindow : Window
+    {
+        public class ModItem
+        {
+            public string FileName { get; set; }
+            public string FullPath { get; set; }
+        }
+
+        private readonly ObservableCollection<ModItem> Mods = new ObservableCollection<ModItem>();
+        private string BeamNGExePath;
+
+        private string StartupIniPath;
+        private string IniUserPathRaw;
+        private string ResolvedUserPath;
+
+        private bool _uiReady = false;
+
+        public MainWindow()
+        {
+            InitializeComponent();
+            ModsList.ItemsSource = Mods;
+            Loaded += MainWindow_Loaded;
+        }
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            LocateBeamNGExe_FromSteamLibraries();
+            LoadStartupIni_UserPath();
+            LoadMods();
+
+            // 给可编辑 ComboBox 挂 TextChanged（用户手打时也实时刷新预览）
+            HookComboBoxTextChanged(LevelCombo);
+            HookComboBoxTextChanged(VehicleCombo);
+
+            // 自动从安装目录读取关卡/车辆列表（从 zip 内真实目录提取名称）
+            LoadLevelsAndVehiclesFromGameContent();
+
+            _uiReady = true;
+            RefreshArgsPreview();
+        }
+
+        private void HookComboBoxTextChanged(ComboBox cb)
+        {
+            if (cb == null) return;
+            cb.AddHandler(TextBox.TextChangedEvent, new TextChangedEventHandler(AnyOptionTextChanged));
+        }
+
+        // ====== 统一刷新预览 ======
+        private void AnyOptionChanged(object sender, RoutedEventArgs e)
+        {
+            if (!_uiReady) return;
+            RefreshArgsPreview();
+        }
+
+        private void AnyOptionTextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!_uiReady) return;
+            RefreshArgsPreview();
+        }
+
+        private void AnyOptionSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!_uiReady) return;
+            RefreshArgsPreview();
+        }
+
+        private void RefreshArgsPreview()
+        {
+            if (LaunchArgsTextBox == null) return;
+            LaunchArgsTextBox.Text = BuildArgumentsFromUI();
+        }
+
+        // =========================
+        // 从安装目录 content\levels / content\vehicles 读取 zip
+        // =========================
+        private void LoadLevelsAndVehiclesFromGameContent()
+        {
+            if (string.IsNullOrWhiteSpace(BeamNGExePath) || !File.Exists(BeamNGExePath))
+                return;
+
+            string gameDir = Path.GetDirectoryName(BeamNGExePath);
+            if (string.IsNullOrWhiteSpace(gameDir) || !Directory.Exists(gameDir))
+                return;
+
+            string levelsDir = Path.Combine(gameDir, "content", "levels");
+            string vehiclesDir = Path.Combine(gameDir, "content", "vehicles");
+
+            FillLevelComboFromContentDir(LevelCombo, levelsDir);
+            FillVehicleComboFromContentDir(VehicleCombo, vehiclesDir);
+        }
+
+        // levels：优先解析 zip 内 levels/<name>/...；兜底：zip 文件名(去扩展名)
+        private void FillLevelComboFromContentDir(ComboBox combo, string dir)
+        {
+            if (combo == null) return;
+
+            combo.Items.Clear();
+            combo.Items.Add("(不指定)");
+
+            if (!Directory.Exists(dir))
+            {
+                combo.SelectedIndex = 0;
+                return;
+            }
+
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // 兜底：把包名(去扩展名)加进去（zip/7z/pak 都能显示）
+            var allPackages = Directory.GetFiles(dir, "*.*", SearchOption.TopDirectoryOnly)
+                                       .Where(f =>
+                                       {
+                                           var ext = Path.GetExtension(f).ToLowerInvariant();
+                                           return ext == ".zip" || ext == ".7z" || ext == ".pak";
+                                       })
+                                       .ToList();
+
+            foreach (var p in allPackages)
+            {
+                var name = Path.GetFileNameWithoutExtension(p);
+                if (!string.IsNullOrWhiteSpace(name))
+                    set.Add(name);
+            }
+
+            // 增强：只对 zip 解析内部结构
+            foreach (var zipPath in allPackages.Where(p => Path.GetExtension(p).Equals(".zip", StringComparison.OrdinalIgnoreCase)))
+            {
+                try
+                {
+                    using (var fs = File.OpenRead(zipPath))
+                    using (var za = new ZipArchive(fs, ZipArchiveMode.Read))
+                    {
+                        foreach (var entry in za.Entries)
+                        {
+                            var full = (entry.FullName ?? "").Replace('\\', '/');
+                            if (!full.StartsWith("levels/", StringComparison.OrdinalIgnoreCase))
+                                continue;
+
+                            var parts = full.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (parts.Length >= 2)
+                            {
+                                var levelName = parts[1];
+                                if (!string.IsNullOrWhiteSpace(levelName))
+                                    set.Add(levelName);
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // zip 读失败：忽略，保留兜底文件名
+                }
+            }
+
+            foreach (var name in set.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+                combo.Items.Add(name);
+
+            combo.SelectedIndex = 0;
+        }
+
+        // vehicles：优先解析 zip 内 vehicles/<name>/...；兜底：zip 文件名(去扩展名)
+        private void FillVehicleComboFromContentDir(ComboBox combo, string dir)
+        {
+            if (combo == null) return;
+
+            combo.Items.Clear();
+            combo.Items.Add("(不指定)");
+
+            if (!Directory.Exists(dir))
+            {
+                combo.SelectedIndex = 0;
+                return;
+            }
+
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            var allPackages = Directory.GetFiles(dir, "*.*", SearchOption.TopDirectoryOnly)
+                                       .Where(f =>
+                                       {
+                                           var ext = Path.GetExtension(f).ToLowerInvariant();
+                                           return ext == ".zip" || ext == ".7z" || ext == ".pak";
+                                       })
+                                       .ToList();
+
+            foreach (var p in allPackages)
+            {
+                var name = Path.GetFileNameWithoutExtension(p);
+                if (!string.IsNullOrWhiteSpace(name))
+                    set.Add(name);
+            }
+
+            foreach (var zipPath in allPackages.Where(p => Path.GetExtension(p).Equals(".zip", StringComparison.OrdinalIgnoreCase)))
+            {
+                try
+                {
+                    using (var fs = File.OpenRead(zipPath))
+                    using (var za = new ZipArchive(fs, ZipArchiveMode.Read))
+                    {
+                        foreach (var entry in za.Entries)
+                        {
+                            var full = (entry.FullName ?? "").Replace('\\', '/');
+                            if (!full.StartsWith("vehicles/", StringComparison.OrdinalIgnoreCase))
+                                continue;
+
+                            var parts = full.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (parts.Length >= 2)
+                            {
+                                var vehName = parts[1];
+                                if (!string.IsNullOrWhiteSpace(vehName))
+                                    set.Add(vehName);
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            foreach (var name in set.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+                combo.Items.Add(name);
+
+            combo.SelectedIndex = 0;
+        }
+
+        // ====== 拼接启动参数（包含 level/vehicle 下拉） ======
+        private string BuildArgumentsFromUI()
+        {
+            var args = new List<string>();
+
+            // -gfx
+            var selected = GfxCombo != null ? (GfxCombo.SelectedItem as ComboBoxItem) : null;
+            var gfxTag = selected != null ? (selected.Tag as string) : "default";
+            //if (string.IsNullOrEmpty(generic: gfxTag)) gfxTag = "default";
+
+            if (gfxTag == "dx11") args.Add("-gfx dx11");
+            else if (gfxTag == "vk") args.Add("-gfx vk");
+            else if (gfxTag == "null") args.Add("-gfx null");
+
+            // switches
+            if (ConsoleCheck != null && ConsoleCheck.IsChecked == true) args.Add("-console");
+            if (CefDevCheck != null && CefDevCheck.IsChecked == true) args.Add("-cefdev");
+            if (HeadlessCheck != null && HeadlessCheck.IsChecked == true) args.Add("-headless");
+            if (LuaStdinCheck != null && LuaStdinCheck.IsChecked == true) args.Add("-luastdin");
+            if (LuaDebugCheck != null && LuaDebugCheck.IsChecked == true) args.Add("-luadebug");
+
+            // crash report
+            if (CrashFullRadio != null && CrashFullRadio.IsChecked == true) args.Add("-fullcrashreport");
+            else if (CrashNoneRadio != null && CrashNoneRadio.IsChecked == true) args.Add("-nocrashreport");
+
+            // level / vehicle：用 ComboBox.Text（支持选中+手打）
+            var level = LevelCombo != null ? (LevelCombo.Text ?? "").Trim() : "";
+            if (!string.IsNullOrEmpty(level) && level != "(不指定)")
+                args.Add("-level " + QuoteIfNeeded(level));
+
+            var vehicle = VehicleCombo != null ? (VehicleCombo.Text ?? "").Trim() : "";
+            if (!string.IsNullOrEmpty(vehicle) && vehicle != "(不指定)")
+                args.Add("-vehicle " + QuoteIfNeeded(vehicle));
+
+            // lua / exec
+            var lua = LuaChunkTextBox != null ? (LuaChunkTextBox.Text ?? "").Trim() : "";
+            if (!string.IsNullOrEmpty(lua))
+                args.Add("-lua " + QuoteIfNeeded(lua));
+
+            var exec = ExecTextBox != null ? (ExecTextBox.Text ?? "").Trim() : "";
+            if (!string.IsNullOrEmpty(exec))
+                args.Add("-exec " + QuoteIfNeeded(exec));
+
+            // tcom
+            if (TcomCheck != null && TcomCheck.IsChecked == true)
+            {
+                args.Add("-tcom");
+
+                var portText = TportTextBox != null ? (TportTextBox.Text ?? "").Trim() : "";
+                if (!string.IsNullOrEmpty(portText))
+                    args.Add("-tport " + portText);
+
+                var ip = TcomListenIpTextBox != null ? (TcomListenIpTextBox.Text ?? "").Trim() : "";
+                if (!string.IsNullOrEmpty(ip))
+                    args.Add("-tcom-listen-ip " + QuoteIfNeeded(ip));
+
+                if (TcomDebugCheck != null && TcomDebugCheck.IsChecked == true)
+                    args.Add("-tcom-debug");
+            }
+
+            // 额外参数
+            var extra = ExtraArgsTextBox != null ? (ExtraArgsTextBox.Text ?? "").Trim() : "";
+            if (!string.IsNullOrEmpty(extra))
+                args.Add(extra);
+
+            // startup.ini userpath（保留你原逻辑）
+            if (!string.IsNullOrWhiteSpace(ResolvedUserPath))
+            {
+                if (ResolvedUserPath == @".\")
+                    args.Add("-nouserpath");
+                else
+                    args.Add("-userpath " + QuoteIfNeeded(ResolvedUserPath));
+            }
+
+            return string.Join(" ", args);
+        }
+
+        private string QuoteIfNeeded(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return s;
+            if (s.Contains(" ") || s.Contains("\t") || s.Contains(";"))
+            {
+                s = s.Replace("\"", "\\\"");
+                return "\"" + s + "\"";
+            }
+            return s;
+        }
+
+        // ====== 启动 ======
+        private void Launch_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(BeamNGExePath) || !File.Exists(BeamNGExePath))
+            {
+                MessageBox.Show("BeamNG.drive.exe 未找到");
+                return;
+            }
+
+            // tport 校验
+            if (TcomCheck != null && TcomCheck.IsChecked == true)
+            {
+                var portText = TportTextBox != null ? (TportTextBox.Text ?? "").Trim() : "";
+                if (!string.IsNullOrEmpty(portText))
+                {
+                    int port;
+                    if (!int.TryParse(portText, out port) || port < 1 || port > 65535)
+                    {
+                        MessageBox.Show("tport 无效：请输入 1~65535 的端口号");
+                        return;
+                    }
+                }
+            }
+
+            string args = BuildArgumentsFromUI();
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = BeamNGExePath,
+                    WorkingDirectory = Path.GetDirectoryName(BeamNGExePath),
+                    Arguments = args,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("启动失败：" + ex.Message);
+            }
+        }
+
+        // =========================
+        // SteamLibrary 查找 BeamNG.drive.exe
+        // =========================
+        private void LocateBeamNGExe_FromSteamLibraries()
+        {
+            BeamNGExePath = null;
+
+            var libraries = GetSteamLibraries();
+            foreach (var libRoot in libraries)
+            {
+                string exe = Path.Combine(libRoot, @"steamapps\common\BeamNG.drive\BeamNG.drive.exe");
+                if (File.Exists(exe))
+                {
+                    BeamNGExePath = exe;
+
+                    string ver = GetProductVersion(exe);
+                    if (VersionText != null) VersionText.Text = $"BeamNG.drive | Version {ver}";
+                    if (PathText != null) PathText.Text = $"Path: {exe}";
+                    return;
+                }
+            }
+
+            if (VersionText != null) VersionText.Text = "BeamNG.drive | Version -";
+            if (PathText != null) PathText.Text = "Path: 未找到 BeamNG.drive.exe";
+        }
+
+        private List<string> GetSteamLibraries()
+        {
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            string steamPath = TryGetSteamPathFromRegistry();
+            if (!string.IsNullOrWhiteSpace(steamPath) && Directory.Exists(steamPath))
+            {
+                set.Add(NormalizePath(steamPath));
+
+                string vdf = Path.Combine(steamPath, @"steamapps\libraryfolders.vdf");
+                if (File.Exists(vdf))
+                {
+                    foreach (var p in ParseLibraryFoldersVdf(vdf))
+                        if (Directory.Exists(p)) set.Add(NormalizePath(p));
+                }
+            }
+
+            string[] fallbackSteamRoots =
+            {
+                @"C:\Program Files (x86)\Steam",
+                @"C:\Program Files\Steam",
+                @"D:\Steam",
+                @"E:\Steam"
+            };
+
+            foreach (var root in fallbackSteamRoots)
+            {
+                if (!Directory.Exists(root)) continue;
+                set.Add(NormalizePath(root));
+
+                string vdf = Path.Combine(root, @"steamapps\libraryfolders.vdf");
+                if (File.Exists(vdf))
+                {
+                    foreach (var p in ParseLibraryFoldersVdf(vdf))
+                        if (Directory.Exists(p)) set.Add(NormalizePath(p));
+                }
+            }
+
+            return set.ToList();
+        }
+
+        private string TryGetSteamPathFromRegistry()
+        {
+            try
+            {
+                using (var key = Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam"))
+                {
+                    var v = key != null ? (key.GetValue("SteamPath") as string) : null;
+                    if (!string.IsNullOrWhiteSpace(v)) return v;
+                }
+            }
+            catch { }
+
+            try
+            {
+                using (var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\Valve\Steam"))
+                {
+                    var v = key != null ? (key.GetValue("InstallPath") as string) : null;
+                    if (!string.IsNullOrWhiteSpace(v)) return v;
+                }
+            }
+            catch { }
+
+            return null;
+        }
+
+        private List<string> ParseLibraryFoldersVdf(string vdfPath)
+        {
+            var result = new List<string>();
+            string text = File.ReadAllText(vdfPath);
+
+            foreach (Match m in Regex.Matches(text, "\"path\"\\s*\"([^\"]+)\""))
+            {
+                var p = UnescapeVdfPath(m.Groups[1].Value);
+                if (!string.IsNullOrWhiteSpace(p)) result.Add(p);
+            }
+
+            foreach (Match m in Regex.Matches(text, "\"\\d+\"\\s*\"([^\"]+)\""))
+            {
+                var p = UnescapeVdfPath(m.Groups[1].Value);
+                if (!string.IsNullOrWhiteSpace(p)) result.Add(p);
+            }
+
+            return result;
+        }
+
+        private string UnescapeVdfPath(string v) { return v.Replace(@"\\", @"\"); }
+
+        private string NormalizePath(string p)
+        {
+            try { return Path.GetFullPath(p.Trim().TrimEnd('\\')); }
+            catch { return p.Trim().TrimEnd('\\'); }
+        }
+
+        private string GetProductVersion(string exePath)
+        {
+            try
+            {
+                var info = FileVersionInfo.GetVersionInfo(exePath);
+                if (!string.IsNullOrEmpty(info.ProductVersion))
+                    return info.ProductVersion;
+                return info.FileVersion ?? "Unknown";
+            }
+            catch
+            {
+                return "Unknown";
+            }
+        }
+
+        // =========================
+        // startup.ini -> UserPath
+        // =========================
+        private void LoadStartupIni_UserPath()
+        {
+            IniUserPathRaw = null;
+            ResolvedUserPath = null;
+            StartupIniPath = null;
+
+            string ini1 = null;
+            if (!string.IsNullOrEmpty(BeamNGExePath))
+            {
+                var gameDir = Path.GetDirectoryName(BeamNGExePath);
+                ini1 = Path.Combine(gameDir ?? "", "startup.ini");
+            }
+
+            string ini2 = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "startup.ini");
+
+            if (ini1 != null && File.Exists(ini1)) StartupIniPath = ini1;
+            else if (File.Exists(ini2)) StartupIniPath = ini2;
+
+            if (StartupIniPath == null) return;
+
+            try
+            {
+                string[] lines = File.ReadAllLines(StartupIniPath);
+                bool inFilesystem = false;
+
+                foreach (var raw in lines)
+                {
+                    var line = raw.Trim();
+                    if (line.Length == 0) continue;
+                    if (line.StartsWith(";")) continue;
+
+                    if (line.StartsWith("[") && line.EndsWith("]"))
+                    {
+                        inFilesystem = line.Equals("[filesystem]", StringComparison.OrdinalIgnoreCase);
+                        continue;
+                    }
+
+                    if (!inFilesystem) continue;
+
+                    if (line.StartsWith("UserPath", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var idx = line.IndexOf('=');
+                        if (idx >= 0)
+                        {
+                            IniUserPathRaw = line.Substring(idx + 1).Trim();
+                            break;
+                        }
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(IniUserPathRaw))
+                    return;
+
+                if (IniUserPathRaw == @".\" || IniUserPathRaw == "." || IniUserPathRaw == @"./")
+                {
+                    ResolvedUserPath = @".\";
+                    return;
+                }
+
+                if (Path.IsPathRooted(IniUserPathRaw))
+                {
+                    ResolvedUserPath = IniUserPathRaw;
+                }
+                else
+                {
+                    var iniDir = Path.GetDirectoryName(StartupIniPath);
+                    ResolvedUserPath = Path.GetFullPath(Path.Combine(iniDir ?? "", IniUserPathRaw));
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        // =========================
+        // mods（用户目录 current\mods）
+        // =========================
+        private void LoadMods()
+        {
+            Mods.Clear();
+
+            string modsDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                @"BeamNG\BeamNG.drive\current\mods"
+            );
+
+            if (!Directory.Exists(modsDir))
+                return;
+
+            foreach (var zip in Directory.GetFiles(modsDir, "*.zip"))
+            {
+                Mods.Add(new ModItem
+                {
+                    FileName = Path.GetFileName(zip),
+                    FullPath = zip
+                });
+            }
+        }
+
+        // =========================
+        // 标题栏拖动/窗口按钮
+        // =========================
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount == 2)
+            {
+                WindowState = (WindowState == WindowState.Maximized) ? WindowState.Normal : WindowState.Maximized;
+                return;
+            }
+
+            if (e.ButtonState == MouseButtonState.Pressed)
+                DragMove();
+        }
+
+        private void Close_Click(object sender, RoutedEventArgs e) { Close(); }
+        private void Minimize_Click(object sender, RoutedEventArgs e) { WindowState = WindowState.Minimized; }
+    }
+}
