@@ -22,6 +22,7 @@ namespace BeamNGLauncher
         }
 
         private readonly ObservableCollection<ModItem> Mods = new ObservableCollection<ModItem>();
+        private readonly ObservableCollection<string> ModPngEntries = new ObservableCollection<string>();
         private string BeamNGExePath;
 
         private string StartupIniPath;
@@ -34,6 +35,7 @@ namespace BeamNGLauncher
         {
             InitializeComponent();
             ModsList.ItemsSource = Mods;
+            ModPngListBox.ItemsSource = ModPngEntries;
             Loaded += MainWindow_Loaded;
         }
 
@@ -52,6 +54,7 @@ namespace BeamNGLauncher
 
             _uiReady = true;
             RefreshArgsPreview();
+            UpdateNavigationPage();
         }
 
         private void HookComboBoxTextChanged(ComboBox cb)
@@ -83,6 +86,22 @@ namespace BeamNGLauncher
         {
             if (LaunchArgsTextBox == null) return;
             LaunchArgsTextBox.Text = BuildArgumentsFromUI();
+        }
+
+        private void NavigationMenu_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            UpdateNavigationPage();
+        }
+
+        private void UpdateNavigationPage()
+        {
+            int index = NavigationMenu != null ? NavigationMenu.SelectedIndex : 0;
+            if (index < 0) index = 0;
+
+            if (LaunchPage != null) LaunchPage.Visibility = index == 0 ? Visibility.Visible : Visibility.Collapsed;
+            if (ModPage != null) ModPage.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
+            if (ToolsPage != null) ToolsPage.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
+            if (AboutPage != null) AboutPage.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
         }
 
         // =========================
@@ -586,13 +605,16 @@ namespace BeamNGLauncher
         {
             Mods.Clear();
 
-            string modsDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                @"BeamNG\BeamNG.drive\current\mods"
-            );
+            string modsDir = GetModsDirectory();
+
+            if (ModsPathText != null)
+                ModsPathText.Text = $"Mods 路径：{modsDir}";
 
             if (!Directory.Exists(modsDir))
+            {
+                ResetSelectedModDetails();
                 return;
+            }
 
             foreach (var zip in Directory.GetFiles(modsDir, "*.zip"))
             {
@@ -601,6 +623,229 @@ namespace BeamNGLauncher
                     FileName = Path.GetFileName(zip),
                     FullPath = zip
                 });
+            }
+
+            ResetSelectedModDetails();
+        }
+
+        private string GetModsDirectory()
+        {
+            if (!string.IsNullOrWhiteSpace(ResolvedUserPath))
+            {
+                if (ResolvedUserPath == @".\")
+                {
+                    var gameDir = Path.GetDirectoryName(BeamNGExePath) ?? AppDomain.CurrentDomain.BaseDirectory;
+                    return Path.Combine(gameDir, "mods");
+                }
+
+                return Path.Combine(ResolvedUserPath, "mods");
+            }
+
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                @"BeamNG\BeamNG.drive\current\mods"
+            );
+        }
+
+        private void ResetSelectedModDetails()
+        {
+            if (SelectedModNameText != null) SelectedModNameText.Text = "未选择 Mod";
+            if (SelectedModSizeText != null) SelectedModSizeText.Text = "大小：-";
+            if (SelectedModVehicleText != null) SelectedModVehicleText.Text = "识别的车辆目录：-";
+            if (SelectedModPngCountText != null) SelectedModPngCountText.Text = "PNG 数量：-";
+            ModPngEntries.Clear();
+        }
+
+        private void ModsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var item = ModsList.SelectedItem as ModItem;
+            UpdateSelectedModDetails(item);
+        }
+
+        private void UpdateSelectedModDetails(ModItem item)
+        {
+            ModPngEntries.Clear();
+
+            if (item == null)
+            {
+                ResetSelectedModDetails();
+                return;
+            }
+
+            var fileInfo = new FileInfo(item.FullPath);
+            if (SelectedModNameText != null) SelectedModNameText.Text = item.FileName;
+            if (SelectedModSizeText != null) SelectedModSizeText.Text = $"大小：{FormatFileSize(fileInfo.Length)}";
+
+            var vehicleRoots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var pngEntries = new List<string>();
+
+            try
+            {
+                using (var fs = File.OpenRead(item.FullPath))
+                using (var za = new ZipArchive(fs, ZipArchiveMode.Read))
+                {
+                    foreach (var entry in za.Entries)
+                    {
+                        var full = (entry.FullName ?? "").Replace('\\', '/');
+
+                        if (full.StartsWith("vehicles/", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var parts = full.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (parts.Length >= 2 && !string.IsNullOrWhiteSpace(parts[1]))
+                                vehicleRoots.Add(parts[1]);
+                        }
+
+                        if (full.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+                            pngEntries.Add(full);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("读取 Mod 失败：" + ex.Message);
+            }
+
+            foreach (var png in pngEntries.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+                ModPngEntries.Add(png);
+
+            if (SelectedModVehicleText != null)
+                SelectedModVehicleText.Text = vehicleRoots.Count > 0
+                    ? $"识别的车辆目录：{string.Join(", ", vehicleRoots.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))}"
+                    : "识别的车辆目录：-";
+
+            if (SelectedModPngCountText != null)
+                SelectedModPngCountText.Text = $"PNG 数量：{ModPngEntries.Count}";
+        }
+
+        private string FormatFileSize(long bytes)
+        {
+            double size = bytes;
+            string[] units = { "B", "KB", "MB", "GB" };
+            int unitIndex = 0;
+            while (size >= 1024 && unitIndex < units.Length - 1)
+            {
+                size /= 1024;
+                unitIndex++;
+            }
+            return $"{size:0.##} {units[unitIndex]}";
+        }
+
+        private void RefreshMods_Click(object sender, RoutedEventArgs e)
+        {
+            LoadMods();
+        }
+
+        private void ModsList_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+            e.Handled = true;
+        }
+
+        private void ModsList_Drop(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+                return;
+
+            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+            if (files == null || files.Length == 0)
+                return;
+
+            InstallZipFiles(files);
+        }
+
+        private void InstallZip_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog
+            {
+                Filter = "Zip Files (*.zip)|*.zip",
+                Multiselect = true
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                InstallZipFiles(dialog.FileNames);
+            }
+        }
+
+        private void InstallZipFiles(IEnumerable<string> files)
+        {
+            var zipFiles = files.Where(f => string.Equals(Path.GetExtension(f), ".zip", StringComparison.OrdinalIgnoreCase)).ToList();
+            if (!zipFiles.Any())
+            {
+                MessageBox.Show("未检测到 .zip 文件。");
+                return;
+            }
+
+            string modsDir = GetModsDirectory();
+            Directory.CreateDirectory(modsDir);
+
+            foreach (var file in zipFiles)
+            {
+                try
+                {
+                    string destPath = Path.Combine(modsDir, Path.GetFileName(file));
+                    destPath = GetAvailableFilePath(destPath);
+
+                    var sourceFull = Path.GetFullPath(file);
+                    var destFull = Path.GetFullPath(destPath);
+                    if (string.Equals(sourceFull, destFull, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    File.Copy(file, destPath, false);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"安装失败：{Path.GetFileName(file)}\n{ex.Message}");
+                }
+            }
+
+            LoadMods();
+        }
+
+        private string GetAvailableFilePath(string targetPath)
+        {
+            if (!File.Exists(targetPath))
+                return targetPath;
+
+            string dir = Path.GetDirectoryName(targetPath) ?? "";
+            string fileName = Path.GetFileNameWithoutExtension(targetPath);
+            string ext = Path.GetExtension(targetPath);
+
+            int i = 1;
+            string candidate;
+            do
+            {
+                candidate = Path.Combine(dir, $"{fileName} ({i}){ext}");
+                i++;
+            } while (File.Exists(candidate));
+
+            return candidate;
+        }
+
+        private void OpenModsFolder_Click(object sender, RoutedEventArgs e)
+        {
+            string modsDir = GetModsDirectory();
+            if (!Directory.Exists(modsDir))
+                Directory.CreateDirectory(modsDir);
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = modsDir,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("打开目录失败：" + ex.Message);
             }
         }
 
