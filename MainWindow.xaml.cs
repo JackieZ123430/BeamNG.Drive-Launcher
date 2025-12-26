@@ -21,6 +21,9 @@ namespace BeamNGLauncher
             public string FullPath { get; set; }
         }
 
+        private readonly LocalizationService _localizationService = new LocalizationService();
+        private string NotSpecifiedLabel => GetText("NotSpecified");
+
         private readonly ObservableCollection<ModItem> Mods = new ObservableCollection<ModItem>();
         private readonly ObservableCollection<string> ModPngEntries = new ObservableCollection<string>();
         private string BeamNGExePath;
@@ -30,6 +33,7 @@ namespace BeamNGLauncher
         private string ResolvedUserPath;
 
         private bool _uiReady = false;
+        private bool _suppressLanguageRestart = false;
 
         public MainWindow()
         {
@@ -43,6 +47,8 @@ namespace BeamNGLauncher
         {
             LocateBeamNGExe_FromSteamLibraries();
             LoadStartupIni_UserPath();
+            InitializeLocalization();
+            ApplyLocalization();
             LoadMods();
 
             // 给可编辑 ComboBox 挂 TextChanged（用户手打时也实时刷新预览）
@@ -62,6 +68,132 @@ namespace BeamNGLauncher
         {
             if (cb == null) return;
             cb.AddHandler(TextBox.TextChangedEvent, new TextChangedEventHandler(AnyOptionTextChanged));
+        }
+
+        private void InitializeLocalization()
+        {
+            _suppressLanguageRestart = true;
+            _localizationService.LoadAvailableLanguages(AppDomain.CurrentDomain.BaseDirectory);
+            var savedLanguage = _localizationService.LoadLanguagePreference();
+            if (!string.IsNullOrWhiteSpace(savedLanguage))
+                _localizationService.SetCurrentLanguage(savedLanguage);
+
+            if (LanguageCombo == null) return;
+
+            foreach (ComboBoxItem item in LanguageCombo.Items)
+            {
+                if ((item.Tag as string) == _localizationService.CurrentLanguage)
+                {
+                    LanguageCombo.SelectedItem = item;
+                    return;
+                }
+            }
+
+            LanguageCombo.SelectedIndex = 0;
+            if (LanguageCombo.SelectedItem is ComboBoxItem selectedItem)
+                _localizationService.SetCurrentLanguage(selectedItem.Tag as string);
+
+            _suppressLanguageRestart = false;
+        }
+
+        private string GetText(string key)
+        {
+            return _localizationService.GetText(key);
+        }
+
+        private void ApplyLocalization()
+        {
+            if (MenuTitleText != null) MenuTitleText.Text = GetText("MenuTitle");
+            if (MenuLaunchButton != null) MenuLaunchButton.Content = GetText("MenuLaunch");
+            if (MenuModsButton != null) MenuModsButton.Content = GetText("MenuMods");
+            if (MenuPage3Button != null) MenuPage3Button.Content = GetText("MenuPage3");
+            if (MenuPage4Button != null) MenuPage4Button.Content = GetText("MenuPage4");
+            if (LaunchArgsLabel != null) LaunchArgsLabel.Text = GetText("LaunchArgsLabel");
+
+            if (RenderGroupBox != null) RenderGroupBox.Header = GetText("RenderHeader");
+            if (LaunchContentGroupBox != null) LaunchContentGroupBox.Header = GetText("LaunchContentHeader");
+            if (DebugGroupBox != null) DebugGroupBox.Header = GetText("DebugHeader");
+            if (CrashGroupBox != null) CrashGroupBox.Header = GetText("CrashHeader");
+            if (LuaExecGroupBox != null) LuaExecGroupBox.Header = GetText("LuaExecHeader");
+            if (TcomGroupBox != null) TcomGroupBox.Header = GetText("TcomHeader");
+            if (ExtraArgsGroupBox != null) ExtraArgsGroupBox.Header = GetText("ExtraArgsHeader");
+
+            if (HeadlessCheck != null) HeadlessCheck.Content = GetText("Headless");
+            if (ConsoleCheck != null) ConsoleCheck.Content = GetText("Console");
+            if (CefDevCheck != null) CefDevCheck.Content = GetText("CefDev");
+            if (LuaStdinCheck != null) LuaStdinCheck.Content = GetText("LuaStdin");
+            if (LuaDebugCheck != null) LuaDebugCheck.Content = GetText("LuaDebug");
+            if (CrashDefaultRadio != null) CrashDefaultRadio.Content = GetText("CrashDefault");
+            if (ExtraArgsHintText != null) ExtraArgsHintText.Text = GetText("ExtraArgsHint");
+
+            if (LaunchButton != null) LaunchButton.Content = GetText("LaunchButton");
+            if (ModsIntroText != null) ModsIntroText.Text = GetText("ModsIntro");
+            if (ModsListTitleText != null) ModsListTitleText.Text = GetText("ModsListTitle");
+            if (RefreshModsButton != null) RefreshModsButton.Content = GetText("Refresh");
+            if (ModsDragHintText != null) ModsDragHintText.Text = GetText("ModsDragHint");
+            if (SelectedModGroupBox != null) SelectedModGroupBox.Header = GetText("SelectedModHeader");
+            if (PngListGroupBox != null) PngListGroupBox.Header = GetText("PngListHeader");
+            if (InstallZipButton != null) InstallZipButton.Content = GetText("InstallZip");
+            if (OpenModsFolderButton != null) OpenModsFolderButton.Content = GetText("OpenModsFolder");
+
+            if (Page3PlaceholderText != null) Page3PlaceholderText.Text = GetText("Page3Placeholder");
+            if (SettingsTitleText != null) SettingsTitleText.Text = GetText("SettingsTitle");
+            if (LanguageGroupBox != null) LanguageGroupBox.Header = GetText("LanguageHeader");
+            if (LanguageLabel != null) LanguageLabel.Text = GetText("LanguageLabel");
+            if (AboutGroupBox != null) AboutGroupBox.Header = GetText("AboutHeader");
+            if (CreatedByText != null) CreatedByText.Text = GetText("CreatedBy");
+            if (GithubLinkText != null) GithubLinkText.Text = GetText("GitHubLabel");
+            if (PreReleaseText != null) PreReleaseText.Text = GetText("PreRelease");
+
+            UpdateGfxComboItems();
+            UpdateNotSpecifiedLabel(LevelCombo);
+            UpdateNotSpecifiedLabel(VehicleCombo);
+            ResetSelectedModDetails();
+            UpdateVersionAndPathText();
+        }
+
+        private void UpdateGfxComboItems()
+        {
+            if (GfxCombo == null) return;
+            foreach (var item in GfxCombo.Items.OfType<ComboBoxItem>())
+            {
+                switch (item.Tag as string)
+                {
+                    case "default":
+                        item.Content = GetText("GfxDefault");
+                        break;
+                    case "dx11":
+                        item.Content = GetText("GfxDx11");
+                        break;
+                    case "vk":
+                        item.Content = GetText("GfxVk");
+                        break;
+                    case "null":
+                        item.Content = GetText("GfxNull");
+                        break;
+                }
+            }
+        }
+
+        private void UpdateNotSpecifiedLabel(ComboBox combo)
+        {
+            if (combo == null || combo.Items.Count == 0) return;
+            if (combo.Items[0] is ComboBoxItem item && (item.Tag as string) == "not_specified")
+                item.Content = NotSpecifiedLabel;
+        }
+
+        private void UpdateVersionAndPathText()
+        {
+            if (string.IsNullOrEmpty(BeamNGExePath) || !File.Exists(BeamNGExePath))
+            {
+                if (VersionText != null) VersionText.Text = GetText("VersionMissing");
+                if (PathText != null) PathText.Text = GetText("PathMissing");
+                return;
+            }
+
+            string ver = GetProductVersion(BeamNGExePath);
+            if (VersionText != null) VersionText.Text = string.Format(GetText("VersionText"), ver);
+            if (PathText != null) PathText.Text = string.Format(GetText("PathText"), BeamNGExePath);
         }
 
         // ====== 统一刷新预览 ======
@@ -114,7 +246,7 @@ namespace BeamNGLauncher
             if (combo == null) return;
 
             combo.Items.Clear();
-            combo.Items.Add("(不指定)");
+            combo.Items.Add(new ComboBoxItem { Content = NotSpecifiedLabel, Tag = "not_specified" });
 
             if (!Directory.Exists(dir))
             {
@@ -182,7 +314,7 @@ namespace BeamNGLauncher
             if (combo == null) return;
 
             combo.Items.Clear();
-            combo.Items.Add("(不指定)");
+            combo.Items.Add(new ComboBoxItem { Content = NotSpecifiedLabel, Tag = "not_specified" });
 
             if (!Directory.Exists(dir))
             {
@@ -268,11 +400,11 @@ namespace BeamNGLauncher
 
             // level / vehicle：用 ComboBox.Text（支持选中+手打）
             var level = LevelCombo != null ? (LevelCombo.Text ?? "").Trim() : "";
-            if (!string.IsNullOrEmpty(level) && level != "(不指定)")
+            if (!string.IsNullOrEmpty(level) && level != NotSpecifiedLabel)
                 args.Add("-level " + QuoteIfNeeded(level));
 
             var vehicle = VehicleCombo != null ? (VehicleCombo.Text ?? "").Trim() : "";
-            if (!string.IsNullOrEmpty(vehicle) && vehicle != "(不指定)")
+            if (!string.IsNullOrEmpty(vehicle) && vehicle != NotSpecifiedLabel)
                 args.Add("-vehicle " + QuoteIfNeeded(vehicle));
 
             // lua / exec
@@ -334,7 +466,7 @@ namespace BeamNGLauncher
         {
             if (string.IsNullOrEmpty(BeamNGExePath) || !File.Exists(BeamNGExePath))
             {
-                MessageBox.Show("BeamNG.drive.exe 未找到");
+                MessageBox.Show(GetText("BeamNotFound"));
                 return;
             }
 
@@ -347,7 +479,7 @@ namespace BeamNGLauncher
                     int port;
                     if (!int.TryParse(portText, out port) || port < 1 || port > 65535)
                     {
-                        MessageBox.Show("tport 无效：请输入 1~65535 的端口号");
+                        MessageBox.Show(GetText("TportInvalid"));
                         return;
                     }
                 }
@@ -367,7 +499,7 @@ namespace BeamNGLauncher
             }
             catch (Exception ex)
             {
-                MessageBox.Show("启动失败：" + ex.Message);
+                MessageBox.Show(string.Format(GetText("LaunchFailed"), ex.Message));
             }
         }
 
@@ -387,14 +519,14 @@ namespace BeamNGLauncher
                     BeamNGExePath = exe;
 
                     string ver = GetProductVersion(exe);
-                    if (VersionText != null) VersionText.Text = $"BeamNG.drive | Version {ver}";
-                    if (PathText != null) PathText.Text = $"Path: {exe}";
+                    if (VersionText != null) VersionText.Text = string.Format(GetText("VersionText"), ver);
+                    if (PathText != null) PathText.Text = string.Format(GetText("PathText"), exe);
                     return;
                 }
             }
 
-            if (VersionText != null) VersionText.Text = "BeamNG.drive | Version -";
-            if (PathText != null) PathText.Text = "Path: 未找到 BeamNG.drive.exe";
+            if (VersionText != null) VersionText.Text = GetText("VersionMissing");
+            if (PathText != null) PathText.Text = GetText("PathMissing");
         }
 
         private List<string> GetSteamLibraries()
@@ -593,7 +725,7 @@ namespace BeamNGLauncher
             string modsDir = GetModsDirectory();
 
             if (ModsPathText != null)
-                ModsPathText.Text = $"Mods 路径：{modsDir}";
+                ModsPathText.Text = string.Format(GetText("ModsPath"), modsDir);
 
             if (!Directory.Exists(modsDir))
             {
@@ -634,10 +766,10 @@ namespace BeamNGLauncher
 
         private void ResetSelectedModDetails()
         {
-            if (SelectedModNameText != null) SelectedModNameText.Text = "未选择 Mod";
-            if (SelectedModSizeText != null) SelectedModSizeText.Text = "大小：-";
-            if (SelectedModVehicleText != null) SelectedModVehicleText.Text = "识别的车辆目录：-";
-            if (SelectedModPngCountText != null) SelectedModPngCountText.Text = "PNG 数量：-";
+            if (SelectedModNameText != null) SelectedModNameText.Text = GetText("NoModSelected");
+            if (SelectedModSizeText != null) SelectedModSizeText.Text = string.Format(GetText("SizeLabel"), "-");
+            if (SelectedModVehicleText != null) SelectedModVehicleText.Text = GetText("VehicleFoldersEmpty");
+            if (SelectedModPngCountText != null) SelectedModPngCountText.Text = string.Format(GetText("PngCountLabel"), "-");
             ModPngEntries.Clear();
         }
 
@@ -659,7 +791,7 @@ namespace BeamNGLauncher
 
             var fileInfo = new FileInfo(item.FullPath);
             if (SelectedModNameText != null) SelectedModNameText.Text = item.FileName;
-            if (SelectedModSizeText != null) SelectedModSizeText.Text = $"大小：{FormatFileSize(fileInfo.Length)}";
+            if (SelectedModSizeText != null) SelectedModSizeText.Text = string.Format(GetText("SizeLabel"), FormatFileSize(fileInfo.Length));
 
             var vehicleRoots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var pngEntries = new List<string>();
@@ -687,7 +819,7 @@ namespace BeamNGLauncher
             }
             catch (Exception ex)
             {
-                MessageBox.Show("读取 Mod 失败：" + ex.Message);
+                MessageBox.Show(string.Format(GetText("ReadModFailed"), ex.Message));
             }
 
             foreach (var png in pngEntries.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
@@ -695,11 +827,11 @@ namespace BeamNGLauncher
 
             if (SelectedModVehicleText != null)
                 SelectedModVehicleText.Text = vehicleRoots.Count > 0
-                    ? $"识别的车辆目录：{string.Join(", ", vehicleRoots.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))}"
-                    : "识别的车辆目录：-";
+                    ? string.Format(GetText("VehicleFoldersLabel"), string.Join(", ", vehicleRoots.OrderBy(x => x, StringComparer.OrdinalIgnoreCase)))
+                    : GetText("VehicleFoldersEmpty");
 
             if (SelectedModPngCountText != null)
-                SelectedModPngCountText.Text = $"PNG 数量：{ModPngEntries.Count}";
+                SelectedModPngCountText.Text = string.Format(GetText("PngCountLabel"), ModPngEntries.Count);
         }
 
         private string FormatFileSize(long bytes)
@@ -783,7 +915,7 @@ namespace BeamNGLauncher
             var zipFiles = files.Where(f => string.Equals(Path.GetExtension(f), ".zip", StringComparison.OrdinalIgnoreCase)).ToList();
             if (!zipFiles.Any())
             {
-                MessageBox.Show("未检测到 .zip 文件。");
+                MessageBox.Show(GetText("NoZipDetected"));
                 return;
             }
 
@@ -806,7 +938,7 @@ namespace BeamNGLauncher
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"安装失败：{Path.GetFileName(file)}\n{ex.Message}");
+                    MessageBox.Show(string.Format(GetText("InstallFailed"), Path.GetFileName(file), ex.Message));
                 }
             }
 
@@ -849,7 +981,7 @@ namespace BeamNGLauncher
             }
             catch (Exception ex)
             {
-                MessageBox.Show("打开目录失败：" + ex.Message);
+                MessageBox.Show(string.Format(GetText("OpenFolderFailed"), ex.Message));
             }
         }
 
@@ -870,5 +1002,40 @@ namespace BeamNGLauncher
 
         private void Close_Click(object sender, RoutedEventArgs e) { Close(); }
         private void Minimize_Click(object sender, RoutedEventArgs e) { WindowState = WindowState.Minimized; }
+
+        private void LanguageCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (LanguageCombo?.SelectedItem is ComboBoxItem item)
+            {
+                var selected = item.Tag as string;
+                if (!string.IsNullOrWhiteSpace(selected) && selected != _localizationService.CurrentLanguage)
+                {
+                    _localizationService.SaveLanguagePreference(selected);
+                    if (!_suppressLanguageRestart)
+                        RestartApplication();
+                }
+            }
+        }
+
+        private void RestartApplication()
+        {
+            try
+            {
+                var exePath = Process.GetCurrentProcess().MainModule?.FileName;
+                if (!string.IsNullOrWhiteSpace(exePath))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = exePath,
+                        UseShellExecute = true
+                    });
+                }
+            }
+            catch
+            {
+            }
+
+            Application.Current.Shutdown();
+        }
     }
 }
