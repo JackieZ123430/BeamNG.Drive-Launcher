@@ -5,8 +5,7 @@
         Width="1100"
         Height="720"
         WindowStyle="None"
-        ResizeMode="CanResize"
-        Background="#1E1E1E">
+        ResizeMode="CanResize">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -16,7 +15,6 @@
 
         <!-- 顶部栏 -->
         <Border Grid.Row="0"
-                Background="#252525"
                 Padding="12"
                 MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
             <Grid>
@@ -29,19 +27,17 @@
 
                     <!-- 版本信息 -->
                     <TextBlock x:Name="VersionText"
-                               Foreground="#EAEAEA"
                                FontSize="16"
                                FontWeight="SemiBold"
                                Text="BeamNG.drive | Version -"/>
                     <TextBlock x:Name="PathText"
-                               Foreground="#B8B8B8"
                                FontSize="12"
                                TextTrimming="CharacterEllipsis"
                                Text="Path: -"/>
 
                     <!-- 启动参数预览（由右侧开关/下拉框自动生成） -->
                     <DockPanel Margin="0,8,0,0">
-                        <TextBlock Foreground="#9E9E9E"
+                        <TextBlock
                                    FontSize="12"
                                    VerticalAlignment="Center"
                                    Text="启动参数："
@@ -49,9 +45,6 @@
                         <TextBox x:Name="LaunchArgsTextBox"
                                  Height="26"
                                  FontSize="12"
-                                 Foreground="#EAEAEA"
-                                 Background="#1C1C1C"
-                                 BorderBrush="#3A3A3A"
                                  BorderThickness="1"
                                  Padding="8,3"
                                  IsReadOnly="True"
@@ -67,28 +60,12 @@
                             VerticalAlignment="Top">
                     <Button Width="40" Height="28" Margin="0,0,6,0"
                             Content="—"
-                            Background="Transparent"
-                            Foreground="White"
                             BorderThickness="0"
                             Click="Minimize_Click"/>
                     <Button Width="40" Height="28"
                             Content="✕"
-                            Background="Transparent"
-                            Foreground="White"
                             BorderThickness="0"
-                            Click="Close_Click">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Cursor" Value="Hand"/>
-                                <Setter Property="Background" Value="Transparent"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#E81123"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
+                            Click="Close_Click"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -103,10 +80,9 @@
             </Grid.ColumnDefinitions>
 
             <!-- 左侧菜单 -->
-            <Border Grid.Column="0" Background="#1C1C1C">
+            <Border Grid.Column="0">
                 <StackPanel Margin="10,14,10,10">
                     <TextBlock Text="功能菜单"
-                               Foreground="#DADADA"
                                FontSize="13"
                                FontWeight="SemiBold"
                                Margin="4,0,0,10"/>
@@ -115,38 +91,30 @@
                             Tag="Launch"
                             Height="40"
                             Margin="0,0,0,8"
-                            Foreground="White"
-                            Background="#2A2A2A"
                             BorderThickness="0"
                             Click="MenuButton_Click"/>
                     <Button Content="Mod 管理"
                             Tag="Mods"
                             Height="40"
                             Margin="0,0,0,8"
-                            Foreground="White"
-                            Background="#2A2A2A"
                             BorderThickness="0"
                             Click="MenuButton_Click"/>
                     <Button Content="页面 3"
                             Tag="Page3"
                             Height="40"
                             Margin="0,0,0,8"
-                            Foreground="White"
-                            Background="#2A2A2A"
                             BorderThickness="0"
                             Click="MenuButton_Click"/>
                     <Button Content="页面 4"
                             Tag="Page4"
                             Height="40"
-                            Foreground="White"
-                            Background="#2A2A2A"
                             BorderThickness="0"
                             Click="MenuButton_Click"/>
                 </StackPanel>
             </Border>
 
             <!-- 右侧：页面区域 -->
-            <Grid Grid.Column="1" Background="#1E1E1E">
+            <Grid Grid.Column="1">
                 <Grid x:Name="LaunchPage">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
@@ -160,12 +128,10 @@
 
                         <!-- 渲染 / 图形 -->
                         <GroupBox Header="渲染"
-                                  Foreground="#EAEAEA"
-                                  BorderBrush="#3A3A3A"
                                   Margin="0,0,0,12">
                             <StackPanel Margin="10">
                                 <DockPanel Margin="0,6,0,0">
-                                    <TextBlock Foreground="#CFCFCF"
+                                    <TextBlock
                                                Width="110"
                                                VerticalAlignment="Center"
                                                Text="-gfx"/>
@@ -181,7 +147,6 @@
 
                                 <CheckBox x:Name="HeadlessCheck"
                                           Content="-headless（无窗口）"
-                                          Foreground="#DADADA"
                                           Margin="0,10,0,0"
                                           Checked="AnyOptionChanged"
                                           Unchecked="AnyOptionChanged"/>
@@ -190,13 +155,11 @@
 
                         <!-- 启动到地图/车辆 -->
                         <GroupBox Header="启动内容"
-                                  Foreground="#EAEAEA"
-                                  BorderBrush="#3A3A3A"
                                   Margin="0,0,0,12">
                             <StackPanel Margin="10">
 
                                 <DockPanel Margin="0,6,0,0">
-                                    <TextBlock Foreground="#CFCFCF"
+                                    <TextBlock
                                                Width="110"
                                                VerticalAlignment="Center"
                                                Text="-level"/>
@@ -208,7 +171,7 @@
                                 </DockPanel>
 
                                 <DockPanel Margin="0,10,0,0">
-                                    <TextBlock Foreground="#CFCFCF"
+                                    <TextBlock
                                                Width="110"
                                                VerticalAlignment="Center"
                                                Text="-vehicle"/>
@@ -224,19 +187,15 @@
 
                         <!-- 调试 / 控制台 -->
                         <GroupBox Header="调试"
-                                  Foreground="#EAEAEA"
-                                  BorderBrush="#3A3A3A"
                                   Margin="0,0,0,12">
                             <StackPanel Margin="10">
                                 <CheckBox x:Name="ConsoleCheck"
                                           Content="-console（额外开控制台窗口）"
-                                          Foreground="#DADADA"
                                           Margin="0,6,0,0"
                                           Checked="AnyOptionChanged"
                                           Unchecked="AnyOptionChanged"/>
                                 <CheckBox x:Name="CefDevCheck"
                                           Content="-cefdev（CEF 开发/调试）"
-                                          Foreground="#DADADA"
                                           Margin="0,8,0,0"
                                           Checked="AnyOptionChanged"
                                           Unchecked="AnyOptionChanged"/>
@@ -245,25 +204,20 @@
 
                         <!-- 崩溃报告 -->
                         <GroupBox Header="崩溃报告"
-                                  Foreground="#EAEAEA"
-                                  BorderBrush="#3A3A3A"
                                   Margin="0,0,0,12">
                             <StackPanel Margin="10">
                                 <RadioButton x:Name="CrashDefaultRadio"
                                              Content="默认(不指定)"
-                                             Foreground="#DADADA"
                                              GroupName="Crash"
                                              IsChecked="True"
                                              Checked="AnyOptionChanged"/>
                                 <RadioButton x:Name="CrashFullRadio"
                                              Content="-fullcrashreport"
-                                             Foreground="#DADADA"
                                              Margin="0,8,0,0"
                                              GroupName="Crash"
                                              Checked="AnyOptionChanged"/>
                                 <RadioButton x:Name="CrashNoneRadio"
                                              Content="-nocrashreport"
-                                             Foreground="#DADADA"
                                              Margin="0,8,0,0"
                                              GroupName="Crash"
                                              Checked="AnyOptionChanged"/>
@@ -272,46 +226,36 @@
 
                         <!-- Lua / Exec -->
                         <GroupBox Header="Lua / Exec"
-                                  Foreground="#EAEAEA"
-                                  BorderBrush="#3A3A3A"
                                   Margin="0,0,0,12">
                             <StackPanel Margin="10">
 
                                 <DockPanel Margin="0,6,0,0">
-                                    <TextBlock Foreground="#CFCFCF"
+                                    <TextBlock
                                                Width="110"
                                                VerticalAlignment="Center"
                                                Text="-lua"/>
                                     <TextBox x:Name="LuaChunkTextBox"
                                              Height="28"
-                                             Foreground="#EAEAEA"
-                                             Background="#1C1C1C"
-                                             BorderBrush="#3A3A3A"
                                              TextChanged="AnyOptionTextChanged"/>
                                 </DockPanel>
 
                                 <DockPanel Margin="0,10,0,0">
-                                    <TextBlock Foreground="#CFCFCF"
+                                    <TextBlock
                                                Width="110"
                                                VerticalAlignment="Center"
                                                Text="-exec"/>
                                     <TextBox x:Name="ExecTextBox"
                                              Height="28"
-                                             Foreground="#EAEAEA"
-                                             Background="#1C1C1C"
-                                             BorderBrush="#3A3A3A"
                                              TextChanged="AnyOptionTextChanged"/>
                                 </DockPanel>
 
                                 <CheckBox x:Name="LuaStdinCheck"
                                           Content="-luastdin"
-                                          Foreground="#DADADA"
                                           Margin="0,10,0,0"
                                           Checked="AnyOptionChanged"
                                           Unchecked="AnyOptionChanged"/>
                                 <CheckBox x:Name="LuaDebugCheck"
                                           Content="-luadebug"
-                                          Foreground="#DADADA"
                                           Margin="0,8,0,0"
                                           Checked="AnyOptionChanged"
                                           Unchecked="AnyOptionChanged"/>
@@ -321,45 +265,35 @@
 
                         <!-- tcom（高危功能） -->
                         <GroupBox Header="tcom（高危）"
-                                  Foreground="#EAEAEA"
-                                  BorderBrush="#3A3A3A"
                                   Margin="0,0,0,12">
                             <StackPanel Margin="10">
                                 <CheckBox x:Name="TcomCheck"
                                           Content="-tcom（启用）"
-                                          Foreground="#DADADA"
                                           Checked="AnyOptionChanged"
                                           Unchecked="AnyOptionChanged"/>
 
                                 <DockPanel Margin="0,10,0,0">
-                                    <TextBlock Foreground="#CFCFCF"
+                                    <TextBlock
                                                Width="110"
                                                VerticalAlignment="Center"
                                                Text="-tport"/>
                                     <TextBox x:Name="TportTextBox"
                                              Height="28"
-                                             Foreground="#EAEAEA"
-                                             Background="#1C1C1C"
-                                             BorderBrush="#3A3A3A"
                                              TextChanged="AnyOptionTextChanged"/>
                                 </DockPanel>
 
                                 <DockPanel Margin="0,10,0,0">
-                                    <TextBlock Foreground="#CFCFCF"
+                                    <TextBlock
                                                Width="110"
                                                VerticalAlignment="Center"
                                                Text="-tcom-listen-ip"/>
                                     <TextBox x:Name="TcomListenIpTextBox"
                                              Height="28"
-                                             Foreground="#EAEAEA"
-                                             Background="#1C1C1C"
-                                             BorderBrush="#3A3A3A"
                                              TextChanged="AnyOptionTextChanged"/>
                                 </DockPanel>
 
                                 <CheckBox x:Name="TcomDebugCheck"
                                           Content="-tcom-debug"
-                                          Foreground="#DADADA"
                                           Margin="0,10,0,0"
                                           Checked="AnyOptionChanged"
                                           Unchecked="AnyOptionChanged"/>
@@ -368,18 +302,13 @@
 
                         <!-- 额外参数 -->
                         <GroupBox Header="额外参数"
-                                  Foreground="#EAEAEA"
-                                  BorderBrush="#3A3A3A"
                                   Margin="0,0,0,90">
                             <StackPanel Margin="10">
                                 <TextBox x:Name="ExtraArgsTextBox"
                                          Height="28"
-                                         Foreground="#EAEAEA"
-                                         Background="#1C1C1C"
-                                         BorderBrush="#3A3A3A"
                                          TextChanged="AnyOptionTextChanged"
                                          Text=""/>
-                                <TextBlock Foreground="#8E8E8E"
+                                <TextBlock
                                            Margin="0,8,0,0"
                                            FontSize="12"
                                            Text="这里可手动补充其它参数（不会被覆盖）。"/>
@@ -399,8 +328,6 @@
                             Margin="0,0,28,18"
                             FontSize="18"
                             FontWeight="Bold"
-                            Foreground="White"
-                            Background="#2ECC71"
                             BorderThickness="0"
                             Click="Launch_Click"/>
                 </Grid>
@@ -414,10 +341,8 @@
 
                     <StackPanel Grid.Row="0" Margin="16,16,16,8">
                         <TextBlock Text="支持拖拽 .zip 安装，或使用按钮导入。"
-                                   Foreground="#B8B8B8"
                                    FontSize="12"/>
                         <TextBlock x:Name="ModsPathText"
-                                   Foreground="#9E9E9E"
                                    FontSize="12"
                                    Margin="0,6,0,0"
                                    Text="Mods 路径：-"/>
@@ -431,7 +356,6 @@
                         </Grid.ColumnDefinitions>
 
                         <Border Grid.Column="0"
-                                Background="#1C1C1C"
                                 CornerRadius="6"
                                 Margin="0,0,10,0">
                             <Grid>
@@ -448,7 +372,6 @@
                                     </Grid.ColumnDefinitions>
 
                                     <TextBlock Text="Mods (.zip)"
-                                               Foreground="#DADADA"
                                                FontSize="12"
                                                FontWeight="SemiBold"
                                                VerticalAlignment="Center"/>
@@ -457,15 +380,12 @@
                                             Height="24"
                                             Margin="6,0,0,0"
                                             Content="刷新"
-                                            Foreground="White"
-                                            Background="#3A3A3A"
                                             BorderThickness="0"
                                             Click="RefreshMods_Click"/>
                                 </Grid>
 
                                 <ListBox x:Name="ModsList"
                                          Grid.Row="1"
-                                         Background="Transparent"
                                          BorderThickness="0"
                                          ScrollViewer.VerticalScrollBarVisibility="Auto"
                                          AllowDrop="True"
@@ -474,10 +394,8 @@
                                          SelectionChanged="ModsList_SelectionChanged">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Height="40" Margin="8,6"
-                                                    Background="#2A2A2A" CornerRadius="6">
+                                            <Border Height="40" Margin="8,6" CornerRadius="6">
                                                 <TextBlock Text="{Binding FileName}"
-                                                           Foreground="White"
                                                            VerticalAlignment="Center"
                                                            Margin="10,0"
                                                            TextTrimming="CharacterEllipsis"/>
@@ -488,7 +406,6 @@
 
                                 <TextBlock Grid.Row="2"
                                            Text="提示：将 .zip 模组拖入此处即可安装"
-                                           Foreground="#8E8E8E"
                                            FontSize="11"
                                            Margin="10,6,10,10"/>
                             </Grid>
@@ -496,25 +413,19 @@
 
                         <GroupBox Header="已选择的 Mod"
                                   Grid.Column="1"
-                                  Foreground="#EAEAEA"
-                                  BorderBrush="#3A3A3A"
                                   Margin="0,0,8,0">
                             <StackPanel Margin="10">
                                 <TextBlock x:Name="SelectedModNameText"
-                                           Foreground="#EAEAEA"
                                            FontSize="14"
                                            FontWeight="SemiBold"
                                            Text="未选择 Mod"/>
                                 <TextBlock x:Name="SelectedModSizeText"
-                                           Foreground="#B8B8B8"
                                            Margin="0,6,0,0"
                                            Text="大小：-"/>
                                 <TextBlock x:Name="SelectedModVehicleText"
-                                           Foreground="#B8B8B8"
                                            Margin="0,6,0,0"
                                            Text="识别的车辆目录：-"/>
                                 <TextBlock x:Name="SelectedModPngCountText"
-                                           Foreground="#B8B8B8"
                                            Margin="0,6,0,0"
                                            Text="PNG 数量：-"/>
                             </StackPanel>
@@ -522,13 +433,9 @@
 
                         <GroupBox Header="PNG 列表"
                                   Grid.Column="2"
-                                  Foreground="#EAEAEA"
-                                  BorderBrush="#3A3A3A"
                                   Margin="8,0,0,0">
                             <ListBox x:Name="ModPngListBox"
-                                     Background="Transparent"
                                      BorderThickness="0"
-                                     Foreground="White"
                                      ScrollViewer.VerticalScrollBarVisibility="Auto"/>
                         </GroupBox>
                     </Grid>
@@ -541,15 +448,11 @@
                                 Height="30"
                                 Margin="0,0,8,0"
                                 Content="导入 Zip"
-                                Foreground="White"
-                                Background="#3A3A3A"
                                 BorderThickness="0"
                                 Click="InstallZip_Click"/>
                         <Button Width="120"
                                 Height="30"
                                 Content="打开 Mods 目录"
-                                Foreground="White"
-                                Background="#3A3A3A"
                                 BorderThickness="0"
                                 Click="OpenModsFolder_Click"/>
                     </StackPanel>
@@ -557,7 +460,6 @@
 
                 <Grid x:Name="Page3" Visibility="Collapsed">
                     <TextBlock Text="页面 3：预留内容"
-                               Foreground="#B8B8B8"
                                FontSize="16"
                                VerticalAlignment="Center"
                                HorizontalAlignment="Center"/>
@@ -565,7 +467,6 @@
 
                 <Grid x:Name="Page4" Visibility="Collapsed">
                     <TextBlock Text="页面 4：预留内容"
-                               Foreground="#B8B8B8"
                                FontSize="16"
                                VerticalAlignment="Center"
                                HorizontalAlignment="Center"/>
