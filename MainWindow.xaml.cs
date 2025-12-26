@@ -54,6 +54,8 @@ namespace BeamNGLauncher
 
             _uiReady = true;
             RefreshArgsPreview();
+
+            SetActivePage("Launch");
         }
 
         private void HookComboBoxTextChanged(ComboBox cb)
@@ -716,6 +718,25 @@ namespace BeamNGLauncher
         private void RefreshMods_Click(object sender, RoutedEventArgs e)
         {
             LoadMods();
+        }
+
+        private void MenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is string pageKey)
+            {
+                SetActivePage(pageKey);
+            }
+        }
+
+        private void SetActivePage(string pageKey)
+        {
+            if (LaunchPage == null || ModsPage == null || Page3 == null || Page4 == null)
+                return;
+
+            LaunchPage.Visibility = pageKey == "Launch" ? Visibility.Visible : Visibility.Collapsed;
+            ModsPage.Visibility = pageKey == "Mods" ? Visibility.Visible : Visibility.Collapsed;
+            Page3.Visibility = pageKey == "Page3" ? Visibility.Visible : Visibility.Collapsed;
+            Page4.Visibility = pageKey == "Page4" ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void ModsList_DragEnter(object sender, DragEventArgs e)
