@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using System.Windows.Controls;
 using System.IO.Compression;
+using BeamNGLauncher.Pages;
 
 namespace BeamNGLauncher
 {
@@ -22,6 +23,7 @@ namespace BeamNGLauncher
         }
 
         private readonly ObservableCollection<ModItem> Mods = new ObservableCollection<ModItem>();
+        private readonly ObservableCollection<string> ModPngEntries = new ObservableCollection<string>();
         private string BeamNGExePath;
 
         private string StartupIniPath;
@@ -30,10 +32,12 @@ namespace BeamNGLauncher
 
         private bool _uiReady = false;
 
+        private LaunchPage LaunchPageView => LaunchPageControl;
+        private ModsPage ModsPageView => ModsPageControl;
+
         public MainWindow()
         {
             InitializeComponent();
-            ModsList.ItemsSource = Mods;
             Loaded += MainWindow_Loaded;
         }
 
@@ -41,23 +45,77 @@ namespace BeamNGLauncher
         {
             LocateBeamNGExe_FromSteamLibraries();
             LoadStartupIni_UserPath();
+
+            HookLaunchPageEvents();
+            HookModsPageEvents();
+
             LoadMods();
-
-            // 给可编辑 ComboBox 挂 TextChanged（用户手打时也实时刷新预览）
-            HookComboBoxTextChanged(LevelCombo);
-            HookComboBoxTextChanged(VehicleCombo);
-
-            // 自动从安装目录读取关卡/车辆列表（从 zip 内真实目录提取名称）
             LoadLevelsAndVehiclesFromGameContent();
 
             _uiReady = true;
             RefreshArgsPreview();
+
+            SetActivePage("Launch");
         }
 
         private void HookComboBoxTextChanged(ComboBox cb)
         {
             if (cb == null) return;
             cb.AddHandler(TextBox.TextChangedEvent, new TextChangedEventHandler(AnyOptionTextChanged));
+        }
+
+        private void HookLaunchPageEvents()
+        {
+            var page = LaunchPageView;
+            if (page == null) return;
+
+            page.GfxCombo.SelectionChanged += AnyOptionSelectionChanged;
+            page.HeadlessCheck.Checked += AnyOptionChanged;
+            page.HeadlessCheck.Unchecked += AnyOptionChanged;
+            page.LevelCombo.SelectionChanged += AnyOptionSelectionChanged;
+            page.VehicleCombo.SelectionChanged += AnyOptionSelectionChanged;
+            page.ConsoleCheck.Checked += AnyOptionChanged;
+            page.ConsoleCheck.Unchecked += AnyOptionChanged;
+            page.CefDevCheck.Checked += AnyOptionChanged;
+            page.CefDevCheck.Unchecked += AnyOptionChanged;
+            page.CrashDefaultOption.Checked += AnyOptionChanged;
+            page.CrashFullOption.Checked += AnyOptionChanged;
+            page.CrashNoneOption.Checked += AnyOptionChanged;
+            page.LuaStdinCheck.Checked += AnyOptionChanged;
+            page.LuaStdinCheck.Unchecked += AnyOptionChanged;
+            page.LuaDebugCheck.Checked += AnyOptionChanged;
+            page.LuaDebugCheck.Unchecked += AnyOptionChanged;
+            page.TcomCheck.Checked += AnyOptionChanged;
+            page.TcomCheck.Unchecked += AnyOptionChanged;
+            page.TcomDebugCheck.Checked += AnyOptionChanged;
+            page.TcomDebugCheck.Unchecked += AnyOptionChanged;
+
+            page.LuaChunkInput.TextChanged += AnyOptionTextChanged;
+            page.ExecInput.TextChanged += AnyOptionTextChanged;
+            page.TportInput.TextChanged += AnyOptionTextChanged;
+            page.TcomListenIpInput.TextChanged += AnyOptionTextChanged;
+            page.ExtraArgsInput.TextChanged += AnyOptionTextChanged;
+
+            HookComboBoxTextChanged(page.LevelCombo);
+            HookComboBoxTextChanged(page.VehicleCombo);
+
+            page.LaunchButtonControl.Click += Launch_Click;
+        }
+
+        private void HookModsPageEvents()
+        {
+            var page = ModsPageView;
+            if (page == null) return;
+
+            page.ModsList.SelectionChanged += ModsList_SelectionChanged;
+            page.ModsList.DragEnter += ModsList_DragEnter;
+            page.ModsList.Drop += ModsList_Drop;
+            page.RefreshModsButtonControl.Click += RefreshMods_Click;
+            page.InstallZipButtonControl.Click += InstallZip_Click;
+            page.OpenModsFolderButtonControl.Click += OpenModsFolder_Click;
+
+            page.ModsList.ItemsSource = Mods;
+            page.ModPngList.ItemsSource = ModPngEntries;
         }
 
         // ====== 统一刷新预览 ======
@@ -100,8 +158,11 @@ namespace BeamNGLauncher
             string levelsDir = Path.Combine(gameDir, "content", "levels");
             string vehiclesDir = Path.Combine(gameDir, "content", "vehicles");
 
-            FillLevelComboFromContentDir(LevelCombo, levelsDir);
-            FillVehicleComboFromContentDir(VehicleCombo, vehiclesDir);
+            var page = LaunchPageView;
+            if (page == null) return;
+
+            FillLevelComboFromContentDir(page.LevelCombo, levelsDir);
+            FillVehicleComboFromContentDir(page.VehicleCombo, vehiclesDir);
         }
 
         // levels：优先解析 zip 内 levels/<name>/...；兜底：zip 文件名(去扩展名)
@@ -241,9 +302,11 @@ namespace BeamNGLauncher
         private string BuildArgumentsFromUI()
         {
             var args = new List<string>();
+            var page = LaunchPageView;
+            if (page == null) return string.Empty;
 
             // -gfx
-            var selected = GfxCombo != null ? (GfxCombo.SelectedItem as ComboBoxItem) : null;
+            var selected = page.GfxCombo != null ? (page.GfxCombo.SelectedItem as ComboBoxItem) : null;
             var gfxTag = selected != null ? (selected.Tag as string) : "default";
             //if (string.IsNullOrEmpty(generic: gfxTag)) gfxTag = "default";
 
@@ -252,53 +315,53 @@ namespace BeamNGLauncher
             else if (gfxTag == "null") args.Add("-gfx null");
 
             // switches
-            if (ConsoleCheck != null && ConsoleCheck.IsChecked == true) args.Add("-console");
-            if (CefDevCheck != null && CefDevCheck.IsChecked == true) args.Add("-cefdev");
-            if (HeadlessCheck != null && HeadlessCheck.IsChecked == true) args.Add("-headless");
-            if (LuaStdinCheck != null && LuaStdinCheck.IsChecked == true) args.Add("-luastdin");
-            if (LuaDebugCheck != null && LuaDebugCheck.IsChecked == true) args.Add("-luadebug");
+            if (page.ConsoleCheck != null && page.ConsoleCheck.IsChecked == true) args.Add("-console");
+            if (page.CefDevCheck != null && page.CefDevCheck.IsChecked == true) args.Add("-cefdev");
+            if (page.HeadlessCheck != null && page.HeadlessCheck.IsChecked == true) args.Add("-headless");
+            if (page.LuaStdinCheck != null && page.LuaStdinCheck.IsChecked == true) args.Add("-luastdin");
+            if (page.LuaDebugCheck != null && page.LuaDebugCheck.IsChecked == true) args.Add("-luadebug");
 
             // crash report
-            if (CrashFullRadio != null && CrashFullRadio.IsChecked == true) args.Add("-fullcrashreport");
-            else if (CrashNoneRadio != null && CrashNoneRadio.IsChecked == true) args.Add("-nocrashreport");
+            if (page.CrashFullOption != null && page.CrashFullOption.IsChecked == true) args.Add("-fullcrashreport");
+            else if (page.CrashNoneOption != null && page.CrashNoneOption.IsChecked == true) args.Add("-nocrashreport");
 
             // level / vehicle：用 ComboBox.Text（支持选中+手打）
-            var level = LevelCombo != null ? (LevelCombo.Text ?? "").Trim() : "";
+            var level = page.LevelCombo != null ? (page.LevelCombo.Text ?? "").Trim() : "";
             if (!string.IsNullOrEmpty(level) && level != "(不指定)")
                 args.Add("-level " + QuoteIfNeeded(level));
 
-            var vehicle = VehicleCombo != null ? (VehicleCombo.Text ?? "").Trim() : "";
+            var vehicle = page.VehicleCombo != null ? (page.VehicleCombo.Text ?? "").Trim() : "";
             if (!string.IsNullOrEmpty(vehicle) && vehicle != "(不指定)")
                 args.Add("-vehicle " + QuoteIfNeeded(vehicle));
 
             // lua / exec
-            var lua = LuaChunkTextBox != null ? (LuaChunkTextBox.Text ?? "").Trim() : "";
+            var lua = page.LuaChunkInput != null ? (page.LuaChunkInput.Text ?? "").Trim() : "";
             if (!string.IsNullOrEmpty(lua))
                 args.Add("-lua " + QuoteIfNeeded(lua));
 
-            var exec = ExecTextBox != null ? (ExecTextBox.Text ?? "").Trim() : "";
+            var exec = page.ExecInput != null ? (page.ExecInput.Text ?? "").Trim() : "";
             if (!string.IsNullOrEmpty(exec))
                 args.Add("-exec " + QuoteIfNeeded(exec));
 
             // tcom
-            if (TcomCheck != null && TcomCheck.IsChecked == true)
+            if (page.TcomCheck != null && page.TcomCheck.IsChecked == true)
             {
                 args.Add("-tcom");
 
-                var portText = TportTextBox != null ? (TportTextBox.Text ?? "").Trim() : "";
+                var portText = page.TportInput != null ? (page.TportInput.Text ?? "").Trim() : "";
                 if (!string.IsNullOrEmpty(portText))
                     args.Add("-tport " + portText);
 
-                var ip = TcomListenIpTextBox != null ? (TcomListenIpTextBox.Text ?? "").Trim() : "";
+                var ip = page.TcomListenIpInput != null ? (page.TcomListenIpInput.Text ?? "").Trim() : "";
                 if (!string.IsNullOrEmpty(ip))
                     args.Add("-tcom-listen-ip " + QuoteIfNeeded(ip));
 
-                if (TcomDebugCheck != null && TcomDebugCheck.IsChecked == true)
+                if (page.TcomDebugCheck != null && page.TcomDebugCheck.IsChecked == true)
                     args.Add("-tcom-debug");
             }
 
             // 额外参数
-            var extra = ExtraArgsTextBox != null ? (ExtraArgsTextBox.Text ?? "").Trim() : "";
+            var extra = page.ExtraArgsInput != null ? (page.ExtraArgsInput.Text ?? "").Trim() : "";
             if (!string.IsNullOrEmpty(extra))
                 args.Add(extra);
 
@@ -335,9 +398,10 @@ namespace BeamNGLauncher
             }
 
             // tport 校验
-            if (TcomCheck != null && TcomCheck.IsChecked == true)
+            var page = LaunchPageView;
+            if (page != null && page.TcomCheck != null && page.TcomCheck.IsChecked == true)
             {
-                var portText = TportTextBox != null ? (TportTextBox.Text ?? "").Trim() : "";
+                var portText = page.TportInput != null ? (page.TportInput.Text ?? "").Trim() : "";
                 if (!string.IsNullOrEmpty(portText))
                 {
                     int port;
@@ -586,13 +650,16 @@ namespace BeamNGLauncher
         {
             Mods.Clear();
 
-            string modsDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                @"BeamNG\BeamNG.drive\current\mods"
-            );
+            string modsDir = GetModsDirectory();
+
+            if (ModsPageView != null && ModsPageView.ModsPathText != null)
+                ModsPageView.ModsPathText.Text = $"Mods 路径：{modsDir}";
 
             if (!Directory.Exists(modsDir))
+            {
+                ResetSelectedModDetails();
                 return;
+            }
 
             foreach (var zip in Directory.GetFiles(modsDir, "*.zip"))
             {
@@ -601,6 +668,257 @@ namespace BeamNGLauncher
                     FileName = Path.GetFileName(zip),
                     FullPath = zip
                 });
+            }
+
+            ResetSelectedModDetails();
+        }
+
+        private string GetModsDirectory()
+        {
+            if (!string.IsNullOrWhiteSpace(ResolvedUserPath))
+            {
+                if (ResolvedUserPath == @".\")
+                {
+                    var gameDir = Path.GetDirectoryName(BeamNGExePath) ?? AppDomain.CurrentDomain.BaseDirectory;
+                    return Path.Combine(gameDir, "mods");
+                }
+
+                return Path.Combine(ResolvedUserPath, "mods");
+            }
+
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                @"BeamNG\BeamNG.drive\current\mods"
+            );
+        }
+
+        private void ResetSelectedModDetails()
+        {
+            if (ModsPageView != null)
+            {
+                if (ModsPageView.SelectedModNameText != null) ModsPageView.SelectedModNameText.Text = "未选择 Mod";
+                if (ModsPageView.SelectedModSizeText != null) ModsPageView.SelectedModSizeText.Text = "大小：-";
+                if (ModsPageView.SelectedModVehicleText != null) ModsPageView.SelectedModVehicleText.Text = "识别的车辆目录：-";
+                if (ModsPageView.SelectedModPngCountText != null) ModsPageView.SelectedModPngCountText.Text = "PNG 数量：-";
+            }
+            ModPngEntries.Clear();
+        }
+
+        private void ModsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var item = ModsPageView != null ? ModsPageView.ModsList.SelectedItem as ModItem : null;
+            UpdateSelectedModDetails(item);
+        }
+
+        private void UpdateSelectedModDetails(ModItem item)
+        {
+            ModPngEntries.Clear();
+
+            if (item == null)
+            {
+                ResetSelectedModDetails();
+                return;
+            }
+
+            var fileInfo = new FileInfo(item.FullPath);
+            if (ModsPageView != null)
+            {
+                if (ModsPageView.SelectedModNameText != null) ModsPageView.SelectedModNameText.Text = item.FileName;
+                if (ModsPageView.SelectedModSizeText != null) ModsPageView.SelectedModSizeText.Text = $"大小：{FormatFileSize(fileInfo.Length)}";
+            }
+
+            var vehicleRoots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var pngEntries = new List<string>();
+
+            try
+            {
+                using (var fs = File.OpenRead(item.FullPath))
+                using (var za = new ZipArchive(fs, ZipArchiveMode.Read))
+                {
+                    foreach (var entry in za.Entries)
+                    {
+                        var full = (entry.FullName ?? "").Replace('\\', '/');
+
+                        if (full.StartsWith("vehicles/", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var parts = full.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (parts.Length >= 2 && !string.IsNullOrWhiteSpace(parts[1]))
+                                vehicleRoots.Add(parts[1]);
+                        }
+
+                        if (full.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+                            pngEntries.Add(full);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("读取 Mod 失败：" + ex.Message);
+            }
+
+            foreach (var png in pngEntries.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+                ModPngEntries.Add(png);
+
+            if (ModsPageView != null)
+            {
+                if (ModsPageView.SelectedModVehicleText != null)
+                    ModsPageView.SelectedModVehicleText.Text = vehicleRoots.Count > 0
+                        ? $"识别的车辆目录：{string.Join(\", \", vehicleRoots.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))}"
+                        : "识别的车辆目录：-";
+
+                if (ModsPageView.SelectedModPngCountText != null)
+                    ModsPageView.SelectedModPngCountText.Text = $"PNG 数量：{ModPngEntries.Count}";
+            }
+        }
+
+        private string FormatFileSize(long bytes)
+        {
+            double size = bytes;
+            string[] units = { "B", "KB", "MB", "GB" };
+            int unitIndex = 0;
+            while (size >= 1024 && unitIndex < units.Length - 1)
+            {
+                size /= 1024;
+                unitIndex++;
+            }
+            return $"{size:0.##} {units[unitIndex]}";
+        }
+
+        private void RefreshMods_Click(object sender, RoutedEventArgs e)
+        {
+            LoadMods();
+        }
+
+        private void MenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is string pageKey)
+            {
+                SetActivePage(pageKey);
+            }
+        }
+
+        private void SetActivePage(string pageKey)
+        {
+            if (LaunchPageControl == null || ModsPageControl == null || Page3Control == null || Page4Control == null)
+                return;
+
+            LaunchPageControl.Visibility = pageKey == "Launch" ? Visibility.Visible : Visibility.Collapsed;
+            ModsPageControl.Visibility = pageKey == "Mods" ? Visibility.Visible : Visibility.Collapsed;
+            Page3Control.Visibility = pageKey == "Page3" ? Visibility.Visible : Visibility.Collapsed;
+            Page4Control.Visibility = pageKey == "Page4" ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void ModsList_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+            e.Handled = true;
+        }
+
+        private void ModsList_Drop(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+                return;
+
+            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+            if (files == null || files.Length == 0)
+                return;
+
+            InstallZipFiles(files);
+        }
+
+        private void InstallZip_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog
+            {
+                Filter = "Zip Files (*.zip)|*.zip",
+                Multiselect = true
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                InstallZipFiles(dialog.FileNames);
+            }
+        }
+
+        private void InstallZipFiles(IEnumerable<string> files)
+        {
+            var zipFiles = files.Where(f => string.Equals(Path.GetExtension(f), ".zip", StringComparison.OrdinalIgnoreCase)).ToList();
+            if (!zipFiles.Any())
+            {
+                MessageBox.Show("未检测到 .zip 文件。");
+                return;
+            }
+
+            string modsDir = GetModsDirectory();
+            Directory.CreateDirectory(modsDir);
+
+            foreach (var file in zipFiles)
+            {
+                try
+                {
+                    string destPath = Path.Combine(modsDir, Path.GetFileName(file));
+                    destPath = GetAvailableFilePath(destPath);
+
+                    var sourceFull = Path.GetFullPath(file);
+                    var destFull = Path.GetFullPath(destPath);
+                    if (string.Equals(sourceFull, destFull, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    File.Copy(file, destPath, false);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"安装失败：{Path.GetFileName(file)}\n{ex.Message}");
+                }
+            }
+
+            LoadMods();
+        }
+
+        private string GetAvailableFilePath(string targetPath)
+        {
+            if (!File.Exists(targetPath))
+                return targetPath;
+
+            string dir = Path.GetDirectoryName(targetPath) ?? "";
+            string fileName = Path.GetFileNameWithoutExtension(targetPath);
+            string ext = Path.GetExtension(targetPath);
+
+            int i = 1;
+            string candidate;
+            do
+            {
+                candidate = Path.Combine(dir, $"{fileName} ({i}){ext}");
+                i++;
+            } while (File.Exists(candidate));
+
+            return candidate;
+        }
+
+        private void OpenModsFolder_Click(object sender, RoutedEventArgs e)
+        {
+            string modsDir = GetModsDirectory();
+            if (!Directory.Exists(modsDir))
+                Directory.CreateDirectory(modsDir);
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = modsDir,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("打开目录失败：" + ex.Message);
             }
         }
 
