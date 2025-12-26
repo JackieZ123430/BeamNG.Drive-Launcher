@@ -1,0 +1,12 @@
+<UserControl x:Class="BeamNGLauncher.Pages.Page3"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource MaterialDesignPaper}">
+    <Grid>
+        <TextBlock Text="页面 3：预留内容"
+                   Foreground="{DynamicResource MaterialDesignBodyLight}"
+                   FontSize="16"
+                   VerticalAlignment="Center"
+                   HorizontalAlignment="Center"/>
+    </Grid>
+</UserControl>

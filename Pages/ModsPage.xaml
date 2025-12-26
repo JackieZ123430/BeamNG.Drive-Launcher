@@ -1,0 +1,148 @@
+<UserControl x:Class="BeamNGLauncher.Pages.ModsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             Background="{DynamicResource MaterialDesignPaper}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="16,16,16,8">
+            <TextBlock Text="支持拖拽 .zip 安装，或使用按钮导入。"
+                       Foreground="{DynamicResource MaterialDesignBodyLight}"
+                       FontSize="12"/>
+            <TextBlock x:Name="ModsPathTextBlock"
+                       Foreground="{DynamicResource MaterialDesignBodyLight}"
+                       FontSize="12"
+                       Margin="0,6,0,0"
+                       Text="Mods 路径：-"/>
+        </StackPanel>
+
+        <Grid Grid.Row="1" Margin="16,0,16,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <materialDesign:Card Grid.Column="0" Padding="0" Margin="0,0,10,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="44"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Margin="10,6,10,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="Mods (.zip)"
+                                   Foreground="{DynamicResource MaterialDesignBody}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center"/>
+                        <Button x:Name="RefreshModsButton"
+                                Grid.Column="1"
+                                Width="56"
+                                Height="24"
+                                Margin="6,0,0,0"
+                                Content="刷新"
+                                Style="{StaticResource MaterialDesignFlatButton}"/>
+                    </Grid>
+
+                    <ListBox x:Name="ModsListBox"
+                             Grid.Row="1"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             AllowDrop="True">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Height="40" Margin="8,6"
+                                        Background="{DynamicResource MaterialDesignCardBackground}"
+                                        CornerRadius="6">
+                                    <TextBlock Text="{Binding FileName}"
+                                               Foreground="{DynamicResource MaterialDesignBody}"
+                                               VerticalAlignment="Center"
+                                               Margin="10,0"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <TextBlock Grid.Row="2"
+                               Text="提示：将 .zip 模组拖入此处即可安装"
+                               Foreground="{DynamicResource MaterialDesignBodyLight}"
+                               FontSize="11"
+                               Margin="10,6,10,10"/>
+                </Grid>
+            </materialDesign:Card>
+
+            <materialDesign:Card Grid.Column="1" Padding="12" Margin="0,0,8,0">
+                <StackPanel>
+                    <TextBlock Text="已选择的 Mod"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource MaterialDesignBody}"/>
+                    <TextBlock x:Name="SelectedModNameTextBlock"
+                               Foreground="{DynamicResource MaterialDesignBody}"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Margin="0,8,0,0"
+                               Text="未选择 Mod"/>
+                    <TextBlock x:Name="SelectedModSizeTextBlock"
+                               Foreground="{DynamicResource MaterialDesignBodyLight}"
+                               Margin="0,6,0,0"
+                               Text="大小：-"/>
+                    <TextBlock x:Name="SelectedModVehicleTextBlock"
+                               Foreground="{DynamicResource MaterialDesignBodyLight}"
+                               Margin="0,6,0,0"
+                               Text="识别的车辆目录：-"/>
+                    <TextBlock x:Name="SelectedModPngCountTextBlock"
+                               Foreground="{DynamicResource MaterialDesignBodyLight}"
+                               Margin="0,6,0,0"
+                               Text="PNG 数量：-"/>
+                </StackPanel>
+            </materialDesign:Card>
+
+            <materialDesign:Card Grid.Column="2" Padding="12" Margin="8,0,0,0">
+                <StackPanel>
+                    <TextBlock Text="PNG 列表"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource MaterialDesignBody}"/>
+                    <ListBox x:Name="ModPngListBox"
+                             Margin="0,8,0,0"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Foreground="{DynamicResource MaterialDesignBody}"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+                </StackPanel>
+            </materialDesign:Card>
+        </Grid>
+
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="16,12,16,16">
+            <Button x:Name="InstallZipButton"
+                    Width="110"
+                    Height="32"
+                    Margin="0,0,8,0"
+                    Content="导入 Zip"
+                    Style="{StaticResource MaterialDesignRaisedButton}"/>
+            <Button x:Name="OpenModsFolderButton"
+                    Width="140"
+                    Height="32"
+                    Content="打开 Mods 目录"
+                    Style="{StaticResource MaterialDesignFlatButton}"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

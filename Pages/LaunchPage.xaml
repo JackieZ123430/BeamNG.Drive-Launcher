@@ -1,0 +1,208 @@
+<UserControl x:Class="BeamNGLauncher.Pages.LaunchPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             Background="{DynamicResource MaterialDesignPaper}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0"
+                      VerticalScrollBarVisibility="Auto"
+                      Padding="16">
+            <StackPanel>
+
+                <!-- 渲染 / 图形 -->
+                <materialDesign:Card Margin="0,0,0,12" Padding="12">
+                    <StackPanel>
+                        <TextBlock Text="渲染"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource MaterialDesignBody}" />
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock Width="110"
+                                       VerticalAlignment="Center"
+                                       Text="-gfx"/>
+                            <ComboBox x:Name="GfxComboBox"
+                                      Height="32">
+                                <ComboBoxItem Content="默认(不指定)" Tag="default" IsSelected="True"/>
+                                <ComboBoxItem Content="dx11" Tag="dx11"/>
+                                <ComboBoxItem Content="vk (Vulkan)" Tag="vk"/>
+                                <ComboBoxItem Content="null (无渲染)" Tag="null"/>
+                            </ComboBox>
+                        </DockPanel>
+
+                        <CheckBox x:Name="HeadlessCheckBox"
+                                  Content="-headless（无窗口）"
+                                  Margin="0,10,0,0"/>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- 启动到地图/车辆 -->
+                <materialDesign:Card Margin="0,0,0,12" Padding="12">
+                    <StackPanel>
+                        <TextBlock Text="启动内容"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource MaterialDesignBody}" />
+
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock Width="110"
+                                       VerticalAlignment="Center"
+                                       Text="-level"/>
+                            <ComboBox x:Name="LevelComboBox"
+                                      Height="32"
+                                      IsEditable="True"
+                                      IsTextSearchEnabled="True"/>
+                        </DockPanel>
+
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock Width="110"
+                                       VerticalAlignment="Center"
+                                       Text="-vehicle"/>
+                            <ComboBox x:Name="VehicleComboBox"
+                                      Height="32"
+                                      IsEditable="True"
+                                      IsTextSearchEnabled="True"/>
+                        </DockPanel>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- 调试 / 控制台 -->
+                <materialDesign:Card Margin="0,0,0,12" Padding="12">
+                    <StackPanel>
+                        <TextBlock Text="调试"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource MaterialDesignBody}" />
+                        <CheckBox x:Name="ConsoleCheckBox"
+                                  Content="-console（额外开控制台窗口）"
+                                  Margin="0,10,0,0"/>
+                        <CheckBox x:Name="CefDevCheckBox"
+                                  Content="-cefdev（CEF 开发/调试）"
+                                  Margin="0,8,0,0"/>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- 崩溃报告 -->
+                <materialDesign:Card Margin="0,0,0,12" Padding="12">
+                    <StackPanel>
+                        <TextBlock Text="崩溃报告"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource MaterialDesignBody}" />
+                        <RadioButton x:Name="CrashDefaultRadio"
+                                     Content="默认(不指定)"
+                                     GroupName="Crash"
+                                     IsChecked="True"/>
+                        <RadioButton x:Name="CrashFullRadio"
+                                     Content="-fullcrashreport"
+                                     Margin="0,8,0,0"
+                                     GroupName="Crash"/>
+                        <RadioButton x:Name="CrashNoneRadio"
+                                     Content="-nocrashreport"
+                                     Margin="0,8,0,0"
+                                     GroupName="Crash"/>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- Lua / Exec -->
+                <materialDesign:Card Margin="0,0,0,12" Padding="12">
+                    <StackPanel>
+                        <TextBlock Text="Lua / Exec"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource MaterialDesignBody}" />
+
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock Width="110"
+                                       VerticalAlignment="Center"
+                                       Text="-lua"/>
+                            <TextBox x:Name="LuaChunkTextBox"
+                                     Height="32"/>
+                        </DockPanel>
+
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock Width="110"
+                                       VerticalAlignment="Center"
+                                       Text="-exec"/>
+                            <TextBox x:Name="ExecTextBox"
+                                     Height="32"/>
+                        </DockPanel>
+
+                        <CheckBox x:Name="LuaStdinCheckBox"
+                                  Content="-luastdin"
+                                  Margin="0,10,0,0"/>
+                        <CheckBox x:Name="LuaDebugCheckBox"
+                                  Content="-luadebug"
+                                  Margin="0,8,0,0"/>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- tcom（高危功能） -->
+                <materialDesign:Card Margin="0,0,0,12" Padding="12">
+                    <StackPanel>
+                        <TextBlock Text="tcom（高危）"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource MaterialDesignBody}" />
+                        <CheckBox x:Name="TcomCheckBox"
+                                  Content="-tcom（启用）"
+                                  Margin="0,6,0,0"/>
+
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock Width="110"
+                                       VerticalAlignment="Center"
+                                       Text="-tport"/>
+                            <TextBox x:Name="TportTextBox"
+                                     Height="32"/>
+                        </DockPanel>
+
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock Width="110"
+                                       VerticalAlignment="Center"
+                                       Text="-tcom-listen-ip"/>
+                            <TextBox x:Name="TcomListenIpTextBox"
+                                     Height="32"/>
+                        </DockPanel>
+
+                        <CheckBox x:Name="TcomDebugCheckBox"
+                                  Content="-tcom-debug"
+                                  Margin="0,10,0,0"/>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- 额外参数 -->
+                <materialDesign:Card Margin="0,0,0,90" Padding="12">
+                    <StackPanel>
+                        <TextBlock Text="额外参数"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource MaterialDesignBody}" />
+                        <TextBox x:Name="ExtraArgsTextBox"
+                                 Height="32"
+                                 Margin="0,10,0,0"/>
+                        <TextBlock Margin="0,8,0,0"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                   Text="这里可手动补充其它参数（不会被覆盖）。"/>
+                    </StackPanel>
+                </materialDesign:Card>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 启动按钮 -->
+        <Button x:Name="LaunchButton"
+                Grid.Row="1"
+                Content="启动游戏"
+                Width="240"
+                Height="56"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Margin="0,0,28,18"
+                Style="{StaticResource MaterialDesignRaisedButton}"/>
+    </Grid>
+</UserControl>
