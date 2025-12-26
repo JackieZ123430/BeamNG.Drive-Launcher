@@ -1,5 +1,5 @@
-# BeamNG.Drive Launcher  
-# BeamNG.Drive 启动器
+# Better BeamNG.Drive Launcher  
+# Better BeamNG.Drive 启动器
 
 一个基于 **Windows / .NET / WPF** 的第三方 **BeamNG.drive 启动器。  
 A third-party **BeamNG.drive launcher** based on **Windows / .NET / WPF**.
