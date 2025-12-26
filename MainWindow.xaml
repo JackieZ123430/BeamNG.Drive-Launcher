@@ -96,59 +96,67 @@
         <!-- 主体 -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <!-- 左：mods -->
-                <ColumnDefinition Width="300"/>
+                <!-- 左：菜单 -->
+                <ColumnDefinition Width="220"/>
                 <!-- 右：主区域 -->
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- 左侧 Mods 列表 -->
+            <!-- 左侧菜单 -->
             <Border Grid.Column="0" Background="#1C1C1C">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="44"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Text="Mods (.zip)"
+                <StackPanel Margin="10,14,10,10">
+                    <TextBlock Text="功能菜单"
                                Foreground="#DADADA"
                                FontSize="13"
                                FontWeight="SemiBold"
-                               VerticalAlignment="Center"
-                               Margin="12,0,12,0"/>
+                               Margin="4,0,0,10"/>
 
-                    <ListBox x:Name="ModsList"
-                             Grid.Row="1"
-                             Background="Transparent"
-                             BorderThickness="0"
-                             ScrollViewer.VerticalScrollBarVisibility="Auto">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Border Height="44" Margin="8,6"
-                                        Background="#2A2A2A" CornerRadius="6">
-                                    <TextBlock Text="{Binding FileName}"
-                                               Foreground="White"
-                                               VerticalAlignment="Center"
-                                               Margin="10,0"
-                                               TextTrimming="CharacterEllipsis"/>
-                                </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </Grid>
+                    <Button Content="启动设置"
+                            Tag="Launch"
+                            Height="40"
+                            Margin="0,0,0,8"
+                            Foreground="White"
+                            Background="#2A2A2A"
+                            BorderThickness="0"
+                            Click="MenuButton_Click"/>
+                    <Button Content="Mod 管理"
+                            Tag="Mods"
+                            Height="40"
+                            Margin="0,0,0,8"
+                            Foreground="White"
+                            Background="#2A2A2A"
+                            BorderThickness="0"
+                            Click="MenuButton_Click"/>
+                    <Button Content="页面 3"
+                            Tag="Page3"
+                            Height="40"
+                            Margin="0,0,0,8"
+                            Foreground="White"
+                            Background="#2A2A2A"
+                            BorderThickness="0"
+                            Click="MenuButton_Click"/>
+                    <Button Content="页面 4"
+                            Tag="Page4"
+                            Height="40"
+                            Foreground="White"
+                            Background="#2A2A2A"
+                            BorderThickness="0"
+                            Click="MenuButton_Click"/>
+                </StackPanel>
             </Border>
 
-            <!-- 右侧：参数区 + 启动按钮 -->
+            <!-- 右侧：页面区域 -->
             <Grid Grid.Column="1" Background="#1E1E1E">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+                <Grid x:Name="LaunchPage">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                <ScrollViewer Grid.Row="0"
-                              VerticalScrollBarVisibility="Auto"
-                              Padding="16">
-                    <StackPanel>
+                    <ScrollViewer Grid.Row="0"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Padding="16">
+                        <StackPanel>
 
                         <!-- 渲染 / 图形 -->
                         <GroupBox Header="渲染"
@@ -378,23 +386,190 @@
                             </StackPanel>
                         </GroupBox>
 
-                    </StackPanel>
-                </ScrollViewer>
+                        </StackPanel>
+                    </ScrollViewer>
 
-                <!-- 启动按钮 -->
-                <Button Grid.Row="1"
-                        Content="启动游戏"
-                        Width="240"
-                        Height="60"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Bottom"
-                        Margin="0,0,28,18"
-                        FontSize="18"
-                        FontWeight="Bold"
-                        Foreground="White"
-                        Background="#2ECC71"
-                        BorderThickness="0"
-                        Click="Launch_Click"/>
+                    <!-- 启动按钮 -->
+                    <Button Grid.Row="1"
+                            Content="启动游戏"
+                            Width="240"
+                            Height="60"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Bottom"
+                            Margin="0,0,28,18"
+                            FontSize="18"
+                            FontWeight="Bold"
+                            Foreground="White"
+                            Background="#2ECC71"
+                            BorderThickness="0"
+                            Click="Launch_Click"/>
+                </Grid>
+
+                <Grid x:Name="ModsPage" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="16,16,16,8">
+                        <TextBlock Text="支持拖拽 .zip 安装，或使用按钮导入。"
+                                   Foreground="#B8B8B8"
+                                   FontSize="12"/>
+                        <TextBlock x:Name="ModsPathText"
+                                   Foreground="#9E9E9E"
+                                   FontSize="12"
+                                   Margin="0,6,0,0"
+                                   Text="Mods 路径：-"/>
+                    </StackPanel>
+
+                    <Grid Grid.Row="1" Margin="16,0,16,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="300"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0"
+                                Background="#1C1C1C"
+                                CornerRadius="6"
+                                Margin="0,0,10,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="44"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <Grid Margin="10,6,10,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Text="Mods (.zip)"
+                                               Foreground="#DADADA"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1"
+                                            Width="56"
+                                            Height="24"
+                                            Margin="6,0,0,0"
+                                            Content="刷新"
+                                            Foreground="White"
+                                            Background="#3A3A3A"
+                                            BorderThickness="0"
+                                            Click="RefreshMods_Click"/>
+                                </Grid>
+
+                                <ListBox x:Name="ModsList"
+                                         Grid.Row="1"
+                                         Background="Transparent"
+                                         BorderThickness="0"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         AllowDrop="True"
+                                         DragEnter="ModsList_DragEnter"
+                                         Drop="ModsList_Drop"
+                                         SelectionChanged="ModsList_SelectionChanged">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Height="40" Margin="8,6"
+                                                    Background="#2A2A2A" CornerRadius="6">
+                                                <TextBlock Text="{Binding FileName}"
+                                                           Foreground="White"
+                                                           VerticalAlignment="Center"
+                                                           Margin="10,0"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+
+                                <TextBlock Grid.Row="2"
+                                           Text="提示：将 .zip 模组拖入此处即可安装"
+                                           Foreground="#8E8E8E"
+                                           FontSize="11"
+                                           Margin="10,6,10,10"/>
+                            </Grid>
+                        </Border>
+
+                        <GroupBox Header="已选择的 Mod"
+                                  Grid.Column="1"
+                                  Foreground="#EAEAEA"
+                                  BorderBrush="#3A3A3A"
+                                  Margin="0,0,8,0">
+                            <StackPanel Margin="10">
+                                <TextBlock x:Name="SelectedModNameText"
+                                           Foreground="#EAEAEA"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Text="未选择 Mod"/>
+                                <TextBlock x:Name="SelectedModSizeText"
+                                           Foreground="#B8B8B8"
+                                           Margin="0,6,0,0"
+                                           Text="大小：-"/>
+                                <TextBlock x:Name="SelectedModVehicleText"
+                                           Foreground="#B8B8B8"
+                                           Margin="0,6,0,0"
+                                           Text="识别的车辆目录：-"/>
+                                <TextBlock x:Name="SelectedModPngCountText"
+                                           Foreground="#B8B8B8"
+                                           Margin="0,6,0,0"
+                                           Text="PNG 数量：-"/>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <GroupBox Header="PNG 列表"
+                                  Grid.Column="2"
+                                  Foreground="#EAEAEA"
+                                  BorderBrush="#3A3A3A"
+                                  Margin="8,0,0,0">
+                            <ListBox x:Name="ModPngListBox"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     Foreground="White"
+                                     ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+                        </GroupBox>
+                    </Grid>
+
+                    <StackPanel Grid.Row="2"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                Margin="16,12,16,16">
+                        <Button Width="110"
+                                Height="30"
+                                Margin="0,0,8,0"
+                                Content="导入 Zip"
+                                Foreground="White"
+                                Background="#3A3A3A"
+                                BorderThickness="0"
+                                Click="InstallZip_Click"/>
+                        <Button Width="120"
+                                Height="30"
+                                Content="打开 Mods 目录"
+                                Foreground="White"
+                                Background="#3A3A3A"
+                                BorderThickness="0"
+                                Click="OpenModsFolder_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid x:Name="Page3" Visibility="Collapsed">
+                    <TextBlock Text="页面 3：预留内容"
+                               Foreground="#B8B8B8"
+                               FontSize="16"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"/>
+                </Grid>
+
+                <Grid x:Name="Page4" Visibility="Collapsed">
+                    <TextBlock Text="页面 4：预留内容"
+                               Foreground="#B8B8B8"
+                               FontSize="16"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"/>
+                </Grid>
             </Grid>
         </Grid>
 
