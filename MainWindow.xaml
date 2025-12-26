@@ -37,7 +37,7 @@
 
                     <!-- 启动参数预览（由右侧开关/下拉框自动生成） -->
                     <DockPanel Margin="0,8,0,0">
-                        <TextBlock
+                        <TextBlock x:Name="LaunchArgsLabel"
                                    FontSize="12"
                                    VerticalAlignment="Center"
                                    Text="启动参数："
@@ -82,30 +82,35 @@
             <!-- 左侧菜单 -->
             <Border Grid.Column="0">
                 <StackPanel Margin="10,14,10,10">
-                    <TextBlock Text="功能菜单"
+                    <TextBlock x:Name="MenuTitleText"
+                               Text="功能菜单"
                                FontSize="13"
                                FontWeight="SemiBold"
                                Margin="4,0,0,10"/>
 
-                    <Button Content="启动设置"
+                    <Button x:Name="MenuLaunchButton"
+                            Content="启动设置"
                             Tag="Launch"
                             Height="40"
                             Margin="0,0,0,8"
                             BorderThickness="0"
                             Click="MenuButton_Click"/>
-                    <Button Content="Mod 管理"
+                    <Button x:Name="MenuModsButton"
+                            Content="Mod 管理"
                             Tag="Mods"
                             Height="40"
                             Margin="0,0,0,8"
                             BorderThickness="0"
                             Click="MenuButton_Click"/>
-                    <Button Content="页面 3"
+                    <Button x:Name="MenuPage3Button"
+                            Content="页面 3"
                             Tag="Page3"
                             Height="40"
                             Margin="0,0,0,8"
                             BorderThickness="0"
                             Click="MenuButton_Click"/>
-                    <Button Content="页面 4"
+                    <Button x:Name="MenuPage4Button"
+                            Content="页面 4"
                             Tag="Page4"
                             Height="40"
                             BorderThickness="0"
@@ -127,7 +132,8 @@
                         <StackPanel>
 
                         <!-- 渲染 / 图形 -->
-                        <GroupBox Header="渲染"
+                        <GroupBox x:Name="RenderGroupBox"
+                                  Header="渲染"
                                   Margin="0,0,0,12">
                             <StackPanel Margin="10">
                                 <DockPanel Margin="0,6,0,0">
@@ -154,7 +160,8 @@
                         </GroupBox>
 
                         <!-- 启动到地图/车辆 -->
-                        <GroupBox Header="启动内容"
+                        <GroupBox x:Name="LaunchContentGroupBox"
+                                  Header="启动内容"
                                   Margin="0,0,0,12">
                             <StackPanel Margin="10">
 
@@ -186,7 +193,8 @@
                         </GroupBox>
 
                         <!-- 调试 / 控制台 -->
-                        <GroupBox Header="调试"
+                        <GroupBox x:Name="DebugGroupBox"
+                                  Header="调试"
                                   Margin="0,0,0,12">
                             <StackPanel Margin="10">
                                 <CheckBox x:Name="ConsoleCheck"
@@ -203,7 +211,8 @@
                         </GroupBox>
 
                         <!-- 崩溃报告 -->
-                        <GroupBox Header="崩溃报告"
+                        <GroupBox x:Name="CrashGroupBox"
+                                  Header="崩溃报告"
                                   Margin="0,0,0,12">
                             <StackPanel Margin="10">
                                 <RadioButton x:Name="CrashDefaultRadio"
@@ -225,7 +234,8 @@
                         </GroupBox>
 
                         <!-- Lua / Exec -->
-                        <GroupBox Header="Lua / Exec"
+                        <GroupBox x:Name="LuaExecGroupBox"
+                                  Header="Lua / Exec"
                                   Margin="0,0,0,12">
                             <StackPanel Margin="10">
 
@@ -264,7 +274,8 @@
                         </GroupBox>
 
                         <!-- tcom（高危功能） -->
-                        <GroupBox Header="tcom（高危）"
+                        <GroupBox x:Name="TcomGroupBox"
+                                  Header="tcom（高危）"
                                   Margin="0,0,0,12">
                             <StackPanel Margin="10">
                                 <CheckBox x:Name="TcomCheck"
@@ -301,14 +312,15 @@
                         </GroupBox>
 
                         <!-- 额外参数 -->
-                        <GroupBox Header="额外参数"
+                        <GroupBox x:Name="ExtraArgsGroupBox"
+                                  Header="额外参数"
                                   Margin="0,0,0,90">
                             <StackPanel Margin="10">
                                 <TextBox x:Name="ExtraArgsTextBox"
                                          Height="28"
                                          TextChanged="AnyOptionTextChanged"
                                          Text=""/>
-                                <TextBlock
+                                <TextBlock x:Name="ExtraArgsHintText"
                                            Margin="0,8,0,0"
                                            FontSize="12"
                                            Text="这里可手动补充其它参数（不会被覆盖）。"/>
@@ -319,7 +331,8 @@
                     </ScrollViewer>
 
                     <!-- 启动按钮 -->
-                    <Button Grid.Row="1"
+                    <Button x:Name="LaunchButton"
+                            Grid.Row="1"
                             Content="启动游戏"
                             Width="240"
                             Height="60"
@@ -340,7 +353,8 @@
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0" Margin="16,16,16,8">
-                        <TextBlock Text="支持拖拽 .zip 安装，或使用按钮导入。"
+                        <TextBlock x:Name="ModsIntroText"
+                                   Text="支持拖拽 .zip 安装，或使用按钮导入。"
                                    FontSize="12"/>
                         <TextBlock x:Name="ModsPathText"
                                    FontSize="12"
@@ -371,11 +385,13 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <TextBlock Text="Mods (.zip)"
+                                    <TextBlock x:Name="ModsListTitleText"
+                                               Text="Mods (.zip)"
                                                FontSize="12"
                                                FontWeight="SemiBold"
                                                VerticalAlignment="Center"/>
-                                    <Button Grid.Column="1"
+                                    <Button x:Name="RefreshModsButton"
+                                            Grid.Column="1"
                                             Width="56"
                                             Height="24"
                                             Margin="6,0,0,0"
@@ -404,14 +420,16 @@
                                     </ListBox.ItemTemplate>
                                 </ListBox>
 
-                                <TextBlock Grid.Row="2"
+                                <TextBlock x:Name="ModsDragHintText"
+                                           Grid.Row="2"
                                            Text="提示：将 .zip 模组拖入此处即可安装"
                                            FontSize="11"
                                            Margin="10,6,10,10"/>
                             </Grid>
                         </Border>
 
-                        <GroupBox Header="已选择的 Mod"
+                        <GroupBox x:Name="SelectedModGroupBox"
+                                  Header="已选择的 Mod"
                                   Grid.Column="1"
                                   Margin="0,0,8,0">
                             <StackPanel Margin="10">
@@ -431,7 +449,8 @@
                             </StackPanel>
                         </GroupBox>
 
-                        <GroupBox Header="PNG 列表"
+                        <GroupBox x:Name="PngListGroupBox"
+                                  Header="PNG 列表"
                                   Grid.Column="2"
                                   Margin="8,0,0,0">
                             <ListBox x:Name="ModPngListBox"
@@ -444,13 +463,15 @@
                                 Orientation="Horizontal"
                                 HorizontalAlignment="Right"
                                 Margin="16,12,16,16">
-                        <Button Width="110"
+                        <Button x:Name="InstallZipButton"
+                                Width="110"
                                 Height="30"
                                 Margin="0,0,8,0"
                                 Content="导入 Zip"
                                 BorderThickness="0"
                                 Click="InstallZip_Click"/>
-                        <Button Width="120"
+                        <Button x:Name="OpenModsFolderButton"
+                                Width="120"
                                 Height="30"
                                 Content="打开 Mods 目录"
                                 BorderThickness="0"
@@ -459,17 +480,59 @@
                 </Grid>
 
                 <Grid x:Name="Page3" Visibility="Collapsed">
-                    <TextBlock Text="页面 3：预留内容"
+                    <TextBlock x:Name="Page3PlaceholderText"
+                               Text="页面 3：预留内容"
                                FontSize="16"
                                VerticalAlignment="Center"
                                HorizontalAlignment="Center"/>
                 </Grid>
 
                 <Grid x:Name="Page4" Visibility="Collapsed">
-                    <TextBlock Text="页面 4：预留内容"
-                               FontSize="16"
-                               VerticalAlignment="Center"
-                               HorizontalAlignment="Center"/>
+                    <StackPanel Margin="24" VerticalAlignment="Top">
+                        <TextBlock x:Name="SettingsTitleText"
+                                   Text="设置"
+                                   FontSize="20"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,16"/>
+
+                        <GroupBox x:Name="LanguageGroupBox"
+                                  Header="语言"
+                                  Margin="0,0,0,16">
+                            <StackPanel Margin="10">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock x:Name="LanguageLabel"
+                                               Text="选择语言："
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,0"/>
+                                    <ComboBox x:Name="LanguageCombo"
+                                              Width="160"
+                                              Height="28"
+                                              SelectionChanged="LanguageCombo_SelectionChanged">
+                                        <ComboBoxItem Content="简体中文" Tag="zh-CN"/>
+                                        <ComboBoxItem Content="English" Tag="en-US"/>
+                                    </ComboBox>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <GroupBox x:Name="AboutGroupBox"
+                                  Header="关于">
+                            <StackPanel Margin="10">
+                                <TextBlock x:Name="CreatedByText"
+                                           Text="Create By 小白151"
+                                           FontSize="14"
+                                           Margin="0,0,0,6"/>
+                                <TextBlock x:Name="GithubLinkText"
+                                           Text="GitHub 地址：https://github.com/JackieZ123430/BeamNG.Drive-Launcher"
+                                           FontSize="12"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,6"/>
+                                <TextBlock x:Name="PreReleaseText"
+                                           Text="当前为 Pre-Release"
+                                           FontSize="12"/>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
                 </Grid>
             </Grid>
         </Grid>
